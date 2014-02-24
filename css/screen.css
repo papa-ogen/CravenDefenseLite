@@ -1,0 +1,118 @@
+@import url("http://fonts.googleapis.com/css?family=Open+Sans:400,600,800");
+
+.left {float: left;}
+.right {float: right;}
+.clear {clear: both;}
+
+.cd {
+	position: relative; 
+	width: 800px; 
+	height: 800px; 
+	background: url('../img/cd-bg.png') no-repeat;
+	box-shadow: 4px 4px 3px #888888;
+}
+
+.cd-menu {
+	position: absolute; 
+	background: #25567b;
+	width: 55px;
+	height: 47px;
+	color: #fff;
+	font-size: 1.6em;
+	text-align: center;
+	font-family: 'Open Sans', sans-serif;
+	padding-top: 8px;
+	box-shadow: 2px 2px 2px #363636;
+}
+	.cd-menu--health {top: 20px; left: 20px;}
+		.cd-menu--health:before {
+			position: absolute;
+			bottom: -23px;
+			left: 7px;
+			background: url("../img/heart-icon.png") no-repeat;
+			content: "";
+			width: 43px;
+			height: 39px;
+		}	
+	.cd-menu--money {top: 20px; left: 90px;}
+		.cd-menu--money:before {
+			position: absolute;
+			bottom: -25px;
+			left: 15px;
+			background: url("../img/money-icon.png") no-repeat;
+			content: "";
+			width: 29px;
+			height: 41px;
+		}
+	.cd-menu--waves {bottom: 20px; left: 20px;}
+		.cd-menu--waves:before {
+			position: absolute;
+			bottom: -21px;
+			left: 7px;
+			content: "Wave";
+			font-size: 0.5em;
+			width: 43px;
+			height: 39px;
+		}		
+		
+.cd-turret-store {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	width: 200px;
+	min-height: 40px;
+	background: #66a3d2;
+	box-shadow: 2px 2px 2px #363636;
+	padding: 20px;
+}
+
+.cd-turret {
+	z-index: 1;
+	position: absolute;
+	background: #fff;
+	width: 40px;
+	height: 40px;
+	border-radius: 20px;	
+}
+	.cd-turret__level-1:before {
+		position: absolute;
+		top: 4px;
+		left: 3px;
+		width: 29px;
+		height: 29px;
+		border: 2px solid #ff9200;
+		content: "";
+		border-radius: 20px;
+	}
+	
+	.cd-turret--drag {
+		box-shadow: 2px 2px 2px #363636;	
+	}
+	
+.cd-turret-info {
+	position: absolute;
+	top: 20px;
+	left: 20px;
+	z-index: 100;
+	opacity: 0;
+	width: 200px;
+	height: 250px;
+	background: #fff;
+}	
+	
+.cd-monster {
+	position: absolute;
+	top: 234px;
+	left: 0;
+	background: #e61217;
+	width: 20px;
+	height: 20px;
+	border-radius: 10px;
+	box-shadow: 1px 1px 2px #363636;
+}	
+
+#start-wave {
+	position: absolute;
+	bottom: 10px;
+	right: 10px;
+}

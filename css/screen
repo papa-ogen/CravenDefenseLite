@@ -1,0 +1,111 @@
+.left {float: left;}
+.right {float: right;}
+.clear {clear: both;}
+
+#cd {position: relative; width: 600px; height: 300px; background: #FFB273;}
+#mygraphiccontainer {width: 600px; width: 300px;}
+
+.monster {background: #67E667; width: 15px; height: 15px;}
+#m1 {position: absolute; top: 33px; left: 33px;}
+#m2 {position: absolute; top: 31px; left: 34px; background: #008500;}
+#m3 {position: absolute; top: 30px; left: 30px; background: #269926;}
+.turret {position: absolute; background: gray; width: 15px; height: 15px;}
+#t1 {top: 158px; left: 133px; }
+.turret:hover .range {    
+  position: absolute;
+    top: -30px; /* minus half the fat-finger height */
+    left: -32px;
+    width: 80px;
+    height: 80px;
+    -moz-border-radius: 40px;
+    -webkit-border-radius: 40px;
+    border-radius: 40px;
+    background-color: #abc;
+    opacity: 0.3;
+    filter: alpha (opacity = 30);
+  background-color: #8DAA16; opacity: 0.4;}
+.cd-status {position: absolute; right: 10px;}
+.status {background: #000; color: #fff; padding: 4px;}
+.cd-store {position: absolute; top: 0; left: 150px; background: #BF7130 ; width: 300px; height: 50px;}
+.cd-store .cd-turret {position: relative; width: 15px; height: 15px; margin: 10px; cursor: move;}
+.cd-turret-1 {background: #85004B;}
+.cd-turret-2 {background: #CD0074;}
+.cd-turret-3 {background: #992667;}
+.cd-turret-4 {background: #E6399B;}
+.cd-turret-5 {background: #E667AF;}
+.cd-turret-info {display: none; z-index: 500; position: absolute; top: 10px; left: 10px; width: 150px; height: 100px; background: #fff; font-size: 0.8em;}
+.cd-turret-info ul {margin: 0; padding: 5px; list-style-type: none;}
+.cd-turret-info ul li {font-weight: bold;}
+.cd-turret-info ul li span {font-weight: normal;}
+.dot {
+    position: absolute;
+    color: #396491;
+    font-size: 20px;
+    height: 0;
+    line-height: 12px;
+    opacity: 0.8;
+    width: 0;
+    cursor: move;
+}
+
+.dot .point { 
+    background-color: #000;
+    position: absolute;
+    left: -3px;
+    top: -3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    font-size: 0px;
+}
+
+.dot .fat-finger {
+    position: absolute;
+    top: -30px; /* minus half the fat-finger height */
+    left: -30px;
+    width: 60px;
+    height: 60px;
+    -moz-border-radius: 30px;
+    -webkit-border-radius: 30px;
+    border-radius: 30px;
+    background-color: #abc;
+    opacity: 0.3;
+    filter: alpha (opacity = 30);
+}
+
+#dot-3 .fat-finger {
+    background-color: #f80;
+    opacity: 0.4;
+}
+
+#dot-0 .fat-finger {
+    background-color: #8DAA16;
+    opacity: 0.4;
+}
+
+#dot-0, #demo {
+    top: 40px;
+    left: 40px;        
+}
+
+#dot-1 {
+    top: 250px;
+    left: 140px;        
+}
+
+#dot-2 {
+    top: 170px;
+    left: 500px;        
+}
+
+#dot-3 {
+    left: 560px;
+    top: 260px;
+}
+
+.point {
+    font-size: 24px;
+    left: 5px;
+    position: absolute;
+    top: -5px;
+}
