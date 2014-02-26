@@ -11,16 +11,6 @@ YUI.add('User', function (Y) {
 		waveEl.setHTML(wave);
 	var cdStore = Y.one('.cd-turre-tstore');
 	var cdTurret = Y.all('.cd-turret');
-						
-	var turret = function(data) {
-  		this.id = data.id;
-		this.type = data.type;
-		this.cost = data.cost;
-		this.range = data.range;
-		this.damage = data.damage;
-		this.speed = data.speed;
-		this.element = data.element;
-	}
 	
 	var canAfford = function(cost) {
 		if(cost > money) return false;
@@ -99,7 +89,13 @@ YUI.add('User', function (Y) {
 		},	
 		setMoney: function (val) {
 			money = val;
-		}		
+		},
+		getLives: function () {
+			return lives;
+		},	
+		setLives: function (val) {
+			lives = val;
+		}			
    };
 }, '0.0.1', {
     requires: ['node', 'dd']

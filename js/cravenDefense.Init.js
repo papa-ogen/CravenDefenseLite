@@ -33,11 +33,13 @@ YUI().use('Map', 'TurretStore', 'User', 'MonsterStore', 'Monster', 'cssbutton', 
 		var timer = 100;
 		monsters.each(function(monster, k) {
 			setTimeout(function() {
-				m.animateMonster(monster, Map.getPath(), monsterTypes, u.getTurrets());
+				m.animateMonster(monster, Map.getPath(), monsterTypes, u);
 			}, timer);
 			timer += 500;
 		});
 	}  		
+	
+	// put animate monster outside so I can get() current turret active, set() user money etc
 
 	Y.one('#start-wave').on('click', function(){
 		resetToAnimStart();
@@ -45,6 +47,6 @@ YUI().use('Map', 'TurretStore', 'User', 'MonsterStore', 'Monster', 'cssbutton', 
 	});
 	
 	var resetToAnimStart = function(){
-		monsters.setStyles({'left': 0, 'top': 234}); // Where x0, y0 is the animation starting point  
+		monsters.setStyles({'left': 0, 'top': 234}); // Where x, y is the animation starting point  
 	}
 });

@@ -5,7 +5,7 @@ YUI.add('Monster', function (Y) {
 	var origin = Y.one('.cd');	
 	
 	Y.CravenDefense.Monster = {
-		init: function (monsterTypes, user) {
+		init: function (monsterTypes) {
 			var monsters = this.getMonsters();
 			var _this = this;
 			
@@ -31,9 +31,12 @@ YUI.add('Monster', function (Y) {
 		getMonsters: function () {
 			return monsters;
 		},
-		animateMonster: function (monster, arrDot, monsterTypes, turrets) {
-			var _this = this, turret;
+		animateMonster: function (monster, arrDot, monsterTypes, user) {
+			var _this = this, turret, money;
+			var turrets = user.getTurrets();
 			var curMonster = this.setMonster(monster, monsterTypes);
+			var cashEl = Y.one('.cd-menu--money');
+			var livesEl = Y.one('.cd-menu--health');
 			var monsterLives = curMonster.lives;
 			var oX = origin.getX(), oY = origin.getY();
 			var m = new Y.Anim({
@@ -58,10 +61,7 @@ YUI.add('Monster', function (Y) {
 				
 				damage = _this.anyTurretsInRange(oX, oY, turrets);
 				
-				if(damage > 0 && turret.active) {
-					setInterval( function () {
-						Y.log("Hello")
-					}, 3000);
+				if(damage > 0) {
 					monsterLives -= damage;
 					monster.one('.monster-info span').setHTML(monsterLives);
 				}
@@ -69,11 +69,23 @@ YUI.add('Monster', function (Y) {
 				// Kill monster
 				if(monsterLives <= 0) {
 					m.stop();
-					//money += curMonster.cost;
-					//cashEl.setHTML(money);
+					money = user.getMoney() + curMonster.cost;
+					user.setMoney(money);
+					cashEl.setHTML(money);
 					monster.hide();
 					_this.textPopUp(oX, oY, "Killed");
-				}					
+				}	
+
+				// Kill player
+				if(oY > 800) {
+					m.stop();
+					lives = user.getLives() - curMonster.damage;
+					Y.log(lives);
+					user.setLives(lives);
+					livesEl.setHTML(lives);
+					monster.hide();
+					_this.textPopUp(oX, oY - 50, "Damage");
+				}				
 			});   
 
 			m.on('end', function() {
@@ -92,10 +104,19 @@ YUI.add('Monster', function (Y) {
 				tX = turrets[i].node.getX();
 				tY = turrets[i].node.getY();
 				
-				if(this.euclidDistance(x,tX,y,tY) <= turrets[i].range) { 
+				if(this.euclidDistance(x,tX,y,tY) <= turrets[i].range && turrets[i].active) { 
+// 					var tSpeed = turrets[i].speed, tActive = turrets[i].active;
+// 					setInterval( function () {
+// 						tActive = true;
+// 						Y.log(tSpeed + "s later, set to true");
+// 					}, tSpeed);				
+					
 					damage += turrets[i].damage;
+// 					turrets[i].active = false;
+					//Y.log("turret's shooting, setting to false: " + turrets[i].damage);
+					
 					//this.rotateTurret(turrets[i].element, x, tX, y, tY);
-					//this.animateShot(Y, x,tX,y,tY);
+					this.animateShot(x,tX,y,tY);
 				}
 			}
 			return damage;
@@ -160,7 +181,7 @@ YUI.add('Monster', function (Y) {
 				y: tY
 			});  	
 
-			this.angleShot(myrect, x, tX, y, tY);
+			//this.angleShot(myrect, x, tX, y, tY);
 
 			var myAnim = new Y.Anim({
 				node: myrect,

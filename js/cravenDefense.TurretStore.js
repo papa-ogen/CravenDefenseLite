@@ -10,7 +10,9 @@ YUI.add('TurretStore', function (Y) {
 		cost: 50,
 		range: 100,
 		damage: 8,
-		speed: 5
+		speed: 10,
+		active: true,
+		node: ""
 	};
 	
 	Y.CravenDefense.TurretStore = {
@@ -60,6 +62,7 @@ YUI.add('TurretStore', function (Y) {
 			this.range = data.range;
 			this.damage = data.damage;
 			this.speed = data.speed;
+			this.active = data.active;			
 			this.node = node;
 		}   		
    };
