@@ -3,6 +3,7 @@ YUI.add('Monster', function (Y) {
 
 	var monsters = Y.all('.cd-monster');
 	var origin = Y.one('.cd');	
+	var mDamageTxt = ["Aoch", "iih", "Doh", "POW", "Smack!"];
 	
 	Y.CravenDefense.Monster = {
 		init: function (monsterTypes) {
@@ -80,7 +81,6 @@ YUI.add('Monster', function (Y) {
 				if(oY > 800) {
 					m.stop();
 					lives = user.getLives() - curMonster.damage;
-					Y.log(lives);
 					user.setLives(lives);
 					livesEl.setHTML(lives);
 					monster.hide();
@@ -98,22 +98,16 @@ YUI.add('Monster', function (Y) {
 			return Math.sqrt(Math.pow(x1-x2,2) + Math.pow(y1-y2,2));
 		},
 		anyTurretsInRange: function (x,y, turrets) {	
-			var damage = 0, tX, tY;	
+			var damage = 0, tX, tY, _this = this;	
 			
 			for(var i=0; i < turrets.length; i++) {
 				tX = turrets[i].node.getX();
 				tY = turrets[i].node.getY();
-				
 				if(this.euclidDistance(x,tX,y,tY) <= turrets[i].range && turrets[i].active) { 
-// 					var tSpeed = turrets[i].speed, tActive = turrets[i].active;
-// 					setInterval( function () {
-// 						tActive = true;
-// 						Y.log(tSpeed + "s later, set to true");
-// 					}, tSpeed);				
+					setTimeout(_this.setTurretActive, turrets[i].speed, turrets[i]);				
 					
 					damage += turrets[i].damage;
-// 					turrets[i].active = false;
-					//Y.log("turret's shooting, setting to false: " + turrets[i].damage);
+					turrets[i].active = false;
 					
 					//this.rotateTurret(turrets[i].element, x, tX, y, tY);
 					this.animateShot(x,tX,y,tY);
@@ -121,12 +115,20 @@ YUI.add('Monster', function (Y) {
 			}
 			return damage;
 		},
+		setTurretActive: function (t) {
+			t.active = true;
+		},
   		monsterInfo: function (t, data) {
 		  	var tNode = Y.Node.create('<div class="monster-info"><span>' + data.lives + '</span></div>');  	
 	  		t.appendChild(tNode);   
 	  	},
 		textPopUp: function (x, y, text) {
 			var x = Math.floor(x), y = Math.floor(y);
+			var xMin = x - 10, xMax = x + 10;
+			var yMin = y - 10, yMax = y + 10;
+			
+			x = this.getRandomInt(xMin, xMax);
+			y = this.getRandomInt(yMin, yMax);
 
 			// Create node
 			var popUpElement = Y.Node.create('<div class="popUp">' + text + '</div>');
@@ -149,11 +151,14 @@ YUI.add('Monster', function (Y) {
 			  	anim.on('end', _this.dropElement(popUpElement));
 			}, 500);
 		},
-		dropElement: function(node) {
+		dropElement: function (node) {
 			var origin = Y.one('.cd');
 
 			origin.removeChild(node); // node is an instance of Node
 		},
+		getRandomInt: function (min, max) {
+	    	return Math.floor(Math.random() * (max - min + 1) + min);
+		},		
 		getAngle: function (x, tX, y, tY) {
 			var dx, dy;
 

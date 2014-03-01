@@ -8,9 +8,9 @@ YUI.add('TurretStore', function (Y) {
 		id: 'cd-turret-1',
 		type: "Machine Gun Tower",
 		cost: 50,
-		range: 100,
-		damage: 8,
-		speed: 10,
+		range: 200,
+		damage: 50,
+		speed: 100,
 		active: true,
 		node: ""
 	};
