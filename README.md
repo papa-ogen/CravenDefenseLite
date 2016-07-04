@@ -1,3 +1,3 @@
 CravenDefenseLite
 =================
-A turret defense game built on the YUI framework
+A turret defense game built on native JavaScript
