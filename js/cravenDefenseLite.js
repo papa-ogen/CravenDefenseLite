@@ -48,9 +48,26 @@ var monster = function(x,y,velocity,radius) {
     }
 };
 
+var bullet = function(x,y,target) {
+    this.x = x,
+    this.y = y,
+    this.targetX = target.x,
+    this.targetY = target.y,
+    this.radius = 1,
+    this.color = 'black',
+    this.speed = 20,
+    this.draw = function() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, true);
+        ctx.closePath();
+        ctx.fillStyle = this.color;
+        ctx.fill();
+    }
+};
+
 /******* Monsters *********/
 var monsters = [], velocity, x = 0, y = 5;
-for(var i=0; i<5; i++) {
+for(var i=0; i<1; i++) {
     velocity = {x: 5, y: 2};
     monsters.push(new monster(x-= 0,y += 20,velocity,5));
 }
@@ -61,6 +78,9 @@ x = 0, y = 0;
 for(var i=0; i<2; i++) {
     turrets.push(new turret(x+=110,y +=50, 5));
 }
+
+/******* Bullets *********/
+var bullets = [];
 
 function drawMonsters() {
     var interval;
@@ -93,6 +113,12 @@ function drawTurrets() {
   });  
 };
 
+function drawBullets() {
+      bullets.forEach(function(bullet, index) {
+          animateShot(bullet);
+  }); 
+};
+
 function drawLives() {
     ctx.font = "10px serif";
     ctx.fillStyle = "black";
@@ -103,6 +129,7 @@ function draw() {
     ctx.clearRect(0,0, canvas.width, canvas.height);
     drawMonsters();
     drawTurrets();
+    drawBullets();
     
     raf = requestAnimationFrame(draw);
 };
@@ -143,7 +170,7 @@ function outOfBounds(monster) {
 function fireTurret(turret, monster) {
     monster.lives -= turret.damage;
     
-    animateShot(turret, monster.x, monster.y);
+    bullets.push(new bullet(turret.x, turret.y, {x: monster.x, y: monster.y}));
 
     if(monster.lives <= 0) {
         player.money += monster.cost;
@@ -151,20 +178,22 @@ function fireTurret(turret, monster) {
     }
 };
 
-function animateShot(turret,x,y) {
-    var bulletX, bulletY;
-    var dx = turret.x - x; 
-    var dy = turret.y - y;
-    var distance = dx*dx + dy*dy;
-    var factor = distance / turret.bulletSpeed;
-    var bulletX = dx / factor; 
-    var bulletY = dy / factor;  
+function animateShot(bullet) {
+    var tx = bullet.targetX - bullet.x,
+        ty = bullet.targetY - bullet.y,
+        dist = Math.sqrt(tx*tx+ty*ty),
+        rad = Math.atan2(ty,tx),
+        angle = rad/Math.PI * 180;
     
-    ctx.beginPath();
-    ctx.arc(bulletX, bulletY, 5, 0, Math.PI*2, true);
-    ctx.closePath();
-    ctx.fillStyle = "black";
-    ctx.fill();
+        var velX = (tx/dist)*bullet.speed;
+        var velY = (ty/dist)*bullet.speed;
+    
+    if(dist > 1) {
+        bullet.x += velX;
+        bullet.y += velY;
+    }
+    
+    bullet.draw();
 };  
 
 function collision(circle1, circle2) {
