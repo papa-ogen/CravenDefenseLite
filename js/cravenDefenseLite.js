@@ -11,7 +11,7 @@ window.requestAnimFrame = (function() {
 })();
 
 /*** TEMP VARS ***/
-var AmountOfMonsters = 10;
+var AmountOfMonsters = 3;
 var monsterSpeed = 2;
 var AmountOfTurrets = 3;
 
@@ -24,6 +24,8 @@ var player = {
     score: 0
 };
 var monsterInterval = 0;
+var currentWave = 1;
+var waveCount = 10;
 
 
 /***** Objects ******/
@@ -124,6 +126,55 @@ for(var i=0; i<AmountOfTurrets; i++) {
 /******* Bullets *********/
 var bullets = [];
 
+/*******      *********/
+/******* Init *********/
+/*******      *********/
+drawMonsters();
+drawTurrets();
+drawLives();
+drawWaves();
+
+function draw() {
+    ctx.clearRect(0,0, canvas.width, canvas.height);
+    
+    drawMonsters();
+    drawTurrets();
+    drawBullets();
+    drawLives();
+    
+    if(monsters.length === 0) {
+        alert("Wave " + currentWave + " complete!");  
+        
+        raf = cancelAnimationFrame(raf);
+        
+        x = 0, y=50;
+        for(var i=0; i<AmountOfMonsters; i++) {
+            velocity = {x: 5, y: 2};
+            monsters.push(new monster(x,y,velocity,monsterSpeed));
+        }
+        
+        currentWave++;
+        monsterInterval = 0;
+        
+        ctx.clearRect(0,0, canvas.width, canvas.height);
+        drawTurrets();
+        drawLives();
+        drawWaves();
+        
+        return;
+    } 
+
+    raf = requestAnimationFrame(draw);
+};
+
+canvas.addEventListener('mouseover', function(e){
+    raf = requestAnimationFrame(draw);
+});
+
+canvas.addEventListener("mouseout",function(e){
+    raf = cancelAnimationFrame(raf);
+});
+
 function drawMonsters() {
     var interval = 0;
     monsters.forEach(function(monster, index) {
@@ -175,28 +226,17 @@ function drawLives() {
     ctx.fillText("Lives: " + player.lives + ", Money: " + player.money, 5, 15);
 };
 
+function drawWaves() {
+    ctx.font = "10px serif";
+    ctx.fillStyle = "black";
+    ctx.fillText("Wave: " + currentWave, 5, 35);
+};
+
 function monsterLives(monster) {
     ctx.font = "10px serif";
     ctx.fillStyle = "black";
     ctx.fillText(monster.lives, monster.x, monster.y); 
 };
-
-function draw() {
-    ctx.clearRect(0,0, canvas.width, canvas.height);
-    drawMonsters();
-    drawTurrets();
-    drawBullets();
-    drawLives();
-    raf = requestAnimationFrame(draw);
-};
-
-canvas.addEventListener('mouseover', function(e){
-    raf = requestAnimationFrame(draw);
-});
-
-canvas.addEventListener("mouseout",function(e){
-    raf = cancelAnimationFrame(raf);
-});
 
 function anyMonstersInRange(turret) {
     monsters.forEach(function(monster) {
@@ -264,10 +304,10 @@ function animateShot(bullet) {
         removeObject(bullets, bullet);
         bullet.monster.lives -= bullet.turret.damage;
         
-        if(monster.lives <= 0) {
-            player.money += monster.cost;
+        if(bullet.monster.lives <= 0) {
+            player.money += bullet.monster.cost;
             bullet.turret.kills += 1;
-            removeObject(monsters, monster);
+            removeObject(monsters, bullet.monster);
         }
         
         return;
@@ -321,7 +361,3 @@ function removeObject(array, obj) {
     
     return array;
 };
-
-drawMonsters();
-drawTurrets();
-drawLives();
