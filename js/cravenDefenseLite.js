@@ -1,4 +1,18 @@
-"use strict" 
+"use strict"; 
+
+window.requestAnimFrame = (function() {
+    return  window.requestAnimationFrame       ||
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame    ||
+    function( callback ) {
+        window.setTimeout(callback, 1000 / 60);
+    };
+})();
+
+/*** TEMP VARS ***/
+var AmountOfMonsters = 5;
+var monsterSpeed = 1;
+var AmountOfTurrets = 1;
 
 var canvas = document.getElementById('cravenDefense');
 var ctx = canvas.getContext('2d');
@@ -8,108 +22,122 @@ var player = {
     money: 100,
     score: 0
 };
+var monsterInterval = 0;
 
-var turret = function(x,y,radius) {
+var Turret = function(x,y,radius) {
     this.x = x,
     this.y = y,
     this.radius = radius,
     this.color = 'blue',
     this.lives = 10,
-    this.engaged = false,
     this.range = 50,
     this.damage = 10,
     this.cost = 100,
-    this.bulletSpeed = 2,    
-    this.draw = function() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, true);
-        ctx.closePath();
-        ctx.fillStyle = this.color;
-        ctx.fill();
-    }
+    this.shotInterval = 10,
+    this.lastShot = 0
 };
 
-var monster = function(x,y,velocity,radius) {
+Turret.prototype.draw = function () {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, true);
+    ctx.closePath();
+    ctx.fillStyle = this.color;
+    ctx.fill(); 
+};
+
+var monster = function(x,y,velocity,speed) {
     this.x = x,
     this.y = y,
     this.vx = velocity.x,
     this.vy = velocity.y,
-    this.radius = radius,
+    this.speed = speed,    
+    this.radius = 5,
     this.color = 'red',
     this.lives = 100,
     this.cost = 10,
-    this.active = true,
-    this.draw = function() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, true);
-        ctx.closePath();
-        ctx.fillStyle = this.color;
-        ctx.fill();
-    }
+    this.active = true
 };
 
-var bullet = function(x,y,target) {
+monster.prototype.draw = function() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, true);
+    ctx.closePath();
+    ctx.fillStyle = this.color;
+    ctx.fill();
+};
+
+var bullet = function(x,y,target,monster,turret) {
     this.x = x,
     this.y = y,
     this.targetX = target.x,
     this.targetY = target.y,
-    this.radius = 1,
+    this.monster = monster,
+    this.turret = turret,
+    this.radius = 2,
     this.color = 'black',
-    this.speed = 20,
-    this.draw = function() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, true);
-        ctx.closePath();
-        ctx.fillStyle = this.color;
-        ctx.fill();
-    }
+    this.speed = 4
+};
+
+bullet.prototype.draw = function() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, true);
+    ctx.closePath();
+    ctx.fillStyle = this.color;
+    ctx.fill();
 };
 
 /******* Monsters *********/
-var monsters = [], velocity, x = 0, y = 5;
-for(var i=0; i<1; i++) {
+var monsters = [], velocity, x = 0, y = 50;
+for(var i=0; i<AmountOfMonsters; i++) {
     velocity = {x: 5, y: 2};
-    monsters.push(new monster(x-= 0,y += 20,velocity,5));
+    monsters.push(new monster(x,y,velocity,monsterSpeed));
 }
 
 /******* Turrets *********/
 var turrets = [];
 x = 0, y = 0;
-for(var i=0; i<2; i++) {
-    turrets.push(new turret(x+=110,y +=50, 5));
+for(var i=0; i<AmountOfTurrets; i++) {
+    turrets.push(new Turret(x+=110,y +=50, 5));
 }
 
 /******* Bullets *********/
 var bullets = [];
 
 function drawMonsters() {
-    var interval;
+    var interval = 0;
     monsters.forEach(function(monster, index) {
-        if(monster.active) {
+        interval = index * 60;
+        if(monster.active && interval < monsterInterval) {
             monster.draw();
             
             if(outOfBounds(monster)) {
-                monster.active = false;
+                removeObject(monsters,monster);
                 player.lives -= 1;
-                drawLives();
                 
                 if(player.lives <= 0) {
                     alert("GAME OVER");
                     document.location.reload();
                 }
             }
-
-            monster.x += monster.vx;        
+            
+            moveMonster(monster); 
         }
-        
-        drawLives();
     });
+    monsterInterval++;
+};
+
+function moveMonster(monster) {
+    monster.x += monster.speed;
+    monsterLives(monster);
 };
 
 function drawTurrets() {
   turrets.forEach(function(turret, index) {
         turret.draw();
-        anyMonstersInRange(turret);
+        
+        if(readyToFire(turret)) anyMonstersInRange(turret);
+        
+        turret.lastShot++;
   });  
 };
 
@@ -125,12 +153,18 @@ function drawLives() {
     ctx.fillText("Lives: " + player.lives + ", Money: " + player.money, 5, 15);
 };
 
+function monsterLives(monster) {
+    ctx.font = "10px serif";
+    ctx.fillStyle = "black";
+    ctx.fillText(monster.lives, monster.x, monster.y); 
+};
+
 function draw() {
     ctx.clearRect(0,0, canvas.width, canvas.height);
     drawMonsters();
     drawTurrets();
     drawBullets();
-    
+    drawLives();
     raf = requestAnimationFrame(draw);
 };
 
@@ -144,12 +178,12 @@ canvas.addEventListener("mouseout",function(e){
 
 function anyMonstersInRange(turret) {
     monsters.forEach(function(monster) {
-        if(monster.active && euclidDistance(monster.x, monster.y, turret.x, turret.y) < turret.range) {
-            fireTurret(turret, monster);
-            turret.engaged = true;
-            return;
-        }
+        if(turretInRange(turret, monster)) fireTurret(turret, monster);
     });
+};
+
+function turretInRange(turret, monster) {
+    return euclidDistance(monster.x, monster.y, turret.x, turret.y) < turret.range;
 };
 
 function euclidDistance(x1,y1,x2,y2) {
@@ -169,13 +203,18 @@ function outOfBounds(monster) {
 
 function fireTurret(turret, monster) {
     monster.lives -= turret.damage;
-    
-    bullets.push(new bullet(turret.x, turret.y, {x: monster.x, y: monster.y}));
+    bullets.push(new bullet(turret.x, turret.y, {x: monster.x, y: monster.y}, monster, turret));
 
     if(monster.lives <= 0) {
         player.money += monster.cost;
-        monster.active = false;
+        removeObject(monsters, monster);
     }
+    
+    turret.lastShot = 0;
+};
+
+function readyToFire(turret) {
+    return turret.lastShot > turret.shotInterval;
 };
 
 function animateShot(bullet) {
@@ -191,6 +230,22 @@ function animateShot(bullet) {
     if(dist > 1) {
         bullet.x += velX;
         bullet.y += velY;
+    } else {
+        removeObject(bullets, bullet);
+        return;
+    }
+    
+    // Direct Hit!
+    if(collision(bullet, bullet.monster)) {
+        removeObject(bullets, bullet);
+        bullet.monster.lives -= bullet.turret.damage;
+        
+        if(monster.lives <= 0) {
+            player.money += monster.cost;
+            removeObject(monsters, monster);
+        }
+        
+        return;
     }
     
     bullet.draw();
@@ -202,13 +257,14 @@ function collision(circle1, circle2) {
     var distance = Math.sqrt(dx * dx + dy * dy);
 
     if (distance < circle1.radius + circle2.radius) {
-        // collision detected!
+        return true;
     }
+    
+    return false;
 };
 
-function removeMonster(array, monsterIndex) {
-    var index = array.indexOf(monsterIndex);
-    
+function removeObject(array, obj) {
+    var index = array.indexOf(obj);
     if (index > -1) {
         return array.splice(index, 1);
     }
