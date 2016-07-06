@@ -1,5 +1,6 @@
 "use strict"; 
 
+/* Crossbrowser shim */
 window.requestAnimFrame = (function() {
     return  window.requestAnimationFrame       ||
     window.webkitRequestAnimationFrame ||
@@ -10,9 +11,9 @@ window.requestAnimFrame = (function() {
 })();
 
 /*** TEMP VARS ***/
-var AmountOfMonsters = 5;
-var monsterSpeed = 1;
-var AmountOfTurrets = 1;
+var AmountOfMonsters = 10;
+var monsterSpeed = 2;
+var AmountOfTurrets = 3;
 
 var canvas = document.getElementById('cravenDefense');
 var ctx = canvas.getContext('2d');
@@ -24,6 +25,8 @@ var player = {
 };
 var monsterInterval = 0;
 
+
+/***** Objects ******/
 var Turret = function(x,y,radius) {
     this.x = x,
     this.y = y,
@@ -35,14 +38,32 @@ var Turret = function(x,y,radius) {
     this.cost = 100,
     this.shotInterval = 10,
     this.lastShot = 0
+    this.barrelAngle = 45,
+    this.kills = 0
 };
 
 Turret.prototype.draw = function () {
+    this.body();
+    this.barrel();
+};
+
+Turret.prototype.body =function () {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2, true);
     ctx.closePath();
     ctx.fillStyle = this.color;
     ctx.fill(); 
+};
+
+Turret.prototype.barrel = function() {
+    ctx.save();
+    ctx.translate(this.x, this.y); // Translate to centre of square
+    ctx.rotate(this.barrelAngle); // Rotate 45 degrees
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, 10);
+    ctx.stroke();  
+    ctx.restore();
 };
 
 var monster = function(x,y,velocity,speed) {
@@ -97,7 +118,7 @@ for(var i=0; i<AmountOfMonsters; i++) {
 var turrets = [];
 x = 0, y = 0;
 for(var i=0; i<AmountOfTurrets; i++) {
-    turrets.push(new Turret(x+=110,y +=50, 5));
+    turrets.push(new Turret(x+=75,y +=25, 5));
 }
 
 /******* Bullets *********/
@@ -143,6 +164,7 @@ function drawTurrets() {
 
 function drawBullets() {
       bullets.forEach(function(bullet, index) {
+          console.log(getDistance(bullet.targetX - bullet.x, bullet.targetY - bullet.y));
           animateShot(bullet);
   }); 
 };
@@ -178,7 +200,10 @@ canvas.addEventListener("mouseout",function(e){
 
 function anyMonstersInRange(turret) {
     monsters.forEach(function(monster) {
-        if(turretInRange(turret, monster)) fireTurret(turret, monster);
+        if(turretInRange(turret, monster)) {
+            fireTurret(turret, monster);
+            rotateTurret(turret, monster);
+        }
     });
 };
 
@@ -207,6 +232,7 @@ function fireTurret(turret, monster) {
 
     if(monster.lives <= 0) {
         player.money += monster.cost;
+        turret.kills += 1;
         removeObject(monsters, monster);
     }
     
@@ -220,14 +246,12 @@ function readyToFire(turret) {
 function animateShot(bullet) {
     var tx = bullet.targetX - bullet.x,
         ty = bullet.targetY - bullet.y,
-        dist = Math.sqrt(tx*tx+ty*ty),
-        rad = Math.atan2(ty,tx),
-        angle = rad/Math.PI * 180;
+        dist = getDistance(tx, ty);
     
         var velX = (tx/dist)*bullet.speed;
         var velY = (ty/dist)*bullet.speed;
     
-    if(dist > 1) {
+    if(dist > 2) {
         bullet.x += velX;
         bullet.y += velY;
     } else {
@@ -242,6 +266,7 @@ function animateShot(bullet) {
         
         if(monster.lives <= 0) {
             player.money += monster.cost;
+            bullet.turret.kills += 1;
             removeObject(monsters, monster);
         }
         
@@ -250,6 +275,10 @@ function animateShot(bullet) {
     
     bullet.draw();
 };  
+
+function getDistance(x, y) {
+    return parseInt(Math.sqrt(x*x+y*y));
+};
 
 function collision(circle1, circle2) {
     var dx = circle1.x - circle2.x;
@@ -261,6 +290,27 @@ function collision(circle1, circle2) {
     }
     
     return false;
+};
+
+function rotateTurret(turret, monster) {
+    var d, dx, dy, 
+        tx = turret.x, ty = turret.y, 
+        mx = monster.x, my = monster.y;
+    var angle = Math.atan2(ty - my, tx - mx );
+    angle = angle * (180/Math.PI);
+    
+    turret.barrelAngle = Math.round(angle); 
+};  
+
+function getAngle(o, event) {
+    var dx, dy, tX = o.getX(), tY = o.getY(), mX = event.clientX, mY = event.clientY;
+
+    dx = mX - tX;
+    dy = mY - tY;
+
+    d =  Math.atan2(dy, dx) / Math.PI * 180 + 79;
+
+    return Math.round(d); 
 };
 
 function removeObject(array, obj) {
@@ -275,21 +325,3 @@ function removeObject(array, obj) {
 drawMonsters();
 drawTurrets();
 drawLives();
-
-
-function rotateTurret(o, event) {
-    var deg = getAngle(o, event);
-    degreesElement.setHTML(deg);
-    o.setStyle('transform', 'rotate(' + deg + 'deg)');
-};  
-
-function getAngle(o, event) {
-    var dx, dy, tX = o.getX(), tY = o.getY(), mX = event.clientX, mY = event.clientY;
-
-    dx = mX - tX;
-    dy = mY - tY;
-
-    d =  Math.atan2(dy, dx) / Math.PI * 180 + 79;
-
-    return Math.round(d); 
-};
