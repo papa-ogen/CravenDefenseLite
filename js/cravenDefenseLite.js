@@ -120,7 +120,7 @@ for(var i=0; i<AmountOfMonsters; i++) {
 var turrets = [];
 x = 0, y = 0;
 for(var i=0; i<AmountOfTurrets; i++) {
-    turrets.push(new Turret(x+=75,y +=25, 5));
+    turrets.push(new Turret(x+=75,y +=25, 4));
 }
 
 /******* Bullets *********/
@@ -141,6 +141,7 @@ function draw() {
     drawTurrets();
     drawBullets();
     drawLives();
+    drawWaves();
     
     if(monsters.length === 0) {
         alert("Wave " + currentWave + " complete!");  
@@ -341,17 +342,6 @@ function rotateTurret(turret, monster) {
     
     turret.barrelAngle = Math.round(angle); 
 };  
-
-function getAngle(o, event) {
-    var dx, dy, tX = o.getX(), tY = o.getY(), mX = event.clientX, mY = event.clientY;
-
-    dx = mX - tX;
-    dy = mY - tY;
-
-    d =  Math.atan2(dy, dx) / Math.PI * 180 + 79;
-
-    return Math.round(d); 
-};
 
 function removeObject(array, obj) {
     var index = array.indexOf(obj);
