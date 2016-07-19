@@ -1,228 +1,223 @@
-"use strict";
-/*** TEMP VARS ***/
-var AMOUNT_OF_MONSTERS = 3;
+var CravenDefense = {
+    AMOUNT_OF_MONSTERS: 10
+};
 
-var game = new Phaser.Game(480, 320, Phaser.AUTO, null, {preload: preload, create: create, update: update, render: render});
+CravenDefense.Preloader = function() {};
 
-var 
-    monsters,
-    monster,
-    turret,
-    // Player
-    scoreText,
-    score = 0,
-    lives = 3,
-    livesText,
-    lifeLostText,
-    // Hud
-    textStyle = { font: '18px Arial', fill: '#0095DD' },
-    playing = false,
-    startButton;
-    
-    var bullets;
-    var fireRate = 100;
-    var nextFire = 0;
-    
-    // https://github.com/photonstorm/phaser-coding-tips/blob/master/issue-008/aliens.html
-    var points = {
-            'x': [ 32, 128, 256, 384, 512, 608 ],
-            'y': [ 240, 240, 240, 240, 240, 240 ]
-        };
-    var pi = 0;
-    var path = [];
+CravenDefense.Preloader.prototype = {
+    init: function () {
+        this.input.maxPointers = 1;
+        this.scale.pageAlignHorizontally = true;
+    },
 
-function preload() {
-    game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-    game.scale.pageAlignHorizontally = true;
-    game.scale.pageAlignVertically = true;
-    game.stage.backgroundColor = '#eee';
-    game.load.image('monster', 'img/ball.png');
-    game.load.image('turret', 'img/brick.png');
-    game.load.image('bullet', 'img/ball.png');
+    preload: function () {
+        this.load.path = 'assets/images/';
+        this.load.images([ 'bg', 'monster', 'turret', 'bullet' ]);
+
+        this.load.spritesheet('wobble', 'wobble.png', 60, 20);
+        this.load.spritesheet('button', 'button.png', 120, 40);
+    },
+
+    create: function () {
+        // var startButton = this.add.button(this.world.width*0.5, this.world.height*0.5, 'button', this.start, this, 1, 0, 2);
+        // startButton.anchor.set(0.5);
         
-    game.load.spritesheet('monster', 'img/wobble.png', 20, 20);
-    game.load.spritesheet('button', 'img/button.png', 120, 40);
-}
-
-function create() {
-    game.physics.startSystem(Phaser.Physics.ARCADE);
-    game.physics.arcade.checkCollision.right = false;
-    game.physics.arcade.checkCollision.down = false;
-    game.physics.arcade.checkCollision.up = false;
-    
-    /******* Monsters *********/
-    createMonsters();
-    
-    /******* Turrets *********/
-    turret = game.add.sprite(game.world.width/2, game.world.height/2, 'turret');
-    turret.anchor.set(0.5,0.5);
-    game.physics.enable(turret, Phaser.Physics.ARCADE);
-    turret.body.immovable = true;
-    
-    /******* Bullets *********/
-    bullets = game.add.group();
-    bullets.enableBody = true;
-    bullets.physicsBodyType = Phaser.Physics.ARCADE;
-
-    bullets.createMultiple(50, 'bullet');
-    bullets.setAll('checkWorldBounds', true);
-    bullets.setAll('outOfBoundsKill', true);
-    
-     /******* HUD *********/
-    scoreText = game.add.text(5, 5, 'Points: 0', textStyle);
-    livesText = game.add.text(game.world.width-5, 5, 'Lives: '+lives, textStyle);
-    livesText.anchor.set(1,0);
-    
-    startButton = game.add.button(game.world.width*0.5, game.world.height*0.5, 'button', startGame, this, 1, 0, 2);
-    startButton.anchor.set(0.5);
-    
-    plot();
-}
-
-function update() {
-    monsters.children[0].x = path[pi].x;
-    monsters.children[0].y = path[pi].y;
-    pi++;
-    
-    if (pi >= path.length)
-    {
-        pi = 0;
+        this.input.onDown.addOnce(this.start, this);
+    },
+    start: function () {
+        this.state.start('CravenDefense.Game');
     }
-    
-    game.physics.arcade.collide(bullets, monsters, turretHitMonster);
-    
-    monsters.forEach(function(monster) {
-        if(game.physics.arcade.distanceBetween(turret, monster) < 100 && monster.alive) {
-            fire(monster);
-        }
-    });    
-}
+};
 
-function render() {
-    game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.total, 32, 32);
-    game.debug.text('Monsters: ' + monsters.length + ' / Turrets ', 32, 52);
-    game.debug.spriteInfo(turret, 32, 450);
-}
-
-function createMonsters() {
-    monsters = game.add.group();
+CravenDefense.Game = function () {
     
-    for(var i=0; i<AMOUNT_OF_MONSTERS; i++) {
-        var x = 0 + i;
-        monster = game.add.sprite(x*20, game.world.height/3, 'monster');
-        monster.animations.add('wobble', [0,1,0,2,0,1,0,2,0], 24);
-        // monster.animations.play("wobble");
-        game.physics.enable(monster, Phaser.Physics.ARCADE);
+    this.score = 0;
+    this.scoreText = null;
+    
+    this.lives = 10;
+    this.livesText = null;    
+    
+    this.textStyle = { font: '18px Arial', fill: '#0095DD' },
+    
+    this.monsters = null;
+    
+    this.turrets = null;
+    
+    this.bullets = null;
+    
+    this.pauseKey = null;
+    this.debugKey = null;
+    this.showDebug = true;
+};
+
+CravenDefense.Game.prototype = {
+    
+    init: function () {
+        
+        this.monsterSpeed = 250;
+        
+    },
+    
+    preload: function () {
+        this.load.path = 'assets/';
+    },  
+      
+    create: function () {
+        
+        /******* Monsters *********/
+        this.monsters = this.add.group();
+        // this.createMonsters();
+        
+        this.releaseMonster();
+
+        /******* Turrets *********/
+        this.turrets = this.add.group();
+        
+        var turret = this.add.sprite(this.world.width/2, this.world.height/2, 'turret');
+        turret.anchor.set(0.5,0.5);
+        this.physics.enable(turret, Phaser.Physics.ARCADE);
+        turret.body.immovable = true;       
+        
+        this.turrets.add(turret); 
+        
+        /******* Bullets *********/
+        this.bullets = this.add.group();
+        this.bullets.enableBody = true;
+        this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
+
+        this.bullets.createMultiple(50, 'bullet');
+        this.bullets.setAll('checkWorldBounds', true);
+        this.bullets.setAll('outOfBoundsKill', true);
+        
+        /******* HUD *********/
+        this.scoreText = this.add.text(5, 5, 'Score: ' + this.score, this.textStyle);
+        this.livesText = this.add.text(5, 25, 'Lives: '+ this.lives, this.textStyle);
+        this.livesText.anchor.set(0,0);        
+        
+        //  Press P to pause and resume the game
+        this.pauseKey = this.input.keyboard.addKey(Phaser.Keyboard.P);
+        this.pauseKey.onDown.add(this.togglePause, this);
+
+        //  Press D to toggle the debug display
+        this.debugKey = this.input.keyboard.addKey(Phaser.Keyboard.D);
+        this.debugKey.onDown.add(this.toggleDebug, this);
+
+    },
+    
+    update: function () {
+        
+        this.turrets.forEachAlive(this.findTarget, this);      
+        
+        this.gameOver();
+          
+    },
+    
+    render: function () {
+
+        if (this.showDebug)
+        {
+            this.game.debug.body(this.turrets);
+            this.monsters.forEachAlive(this.renderBody, this);
+             
+             this.game.debug.text("Monsters: " + this.monsters.countLiving(), 600, 32);
+             this.game.debug.text("Turrets: " + this.turrets.countLiving(), 600, 64);
+        }         
+    },
+    
+    renderBody: function (sprite) {
+
+        this.game.debug.body(sprite);
+
+    },
+    
+    togglePause: function () {
+
+        this.game.paused = (this.game.paused) ? false : true;
+
+    },
+
+    toggleDebug: function () {
+
+        this.showDebug = (this.showDebug) ? false : true;
+
+    },    
+    
+    clickedIt : function(event) {
+        console.log("clicked it");
+    },
+    
+    createMonster : function () {
+        var monster = this.add.sprite(0, game.world.height/3, 'monster');
+        
+        this.physics.enable(monster, Phaser.Physics.ARCADE);
         monster.body.immovable = true;
         monster.anchor.set(0.5);
-        monster.body.velocity.set(0, 0);
+        monster.body.velocity.set(this.monsterSpeed, 0);
         monster.checkWorldBounds = true;
-        monster.events.onOutOfBounds.add(monsterLeaveScreen, this);  
+        monster.events.onOutOfBounds.add(this.monsterLeaveScreen, this);  
             
-        monsters.add(monster);
-    }
-}
-
-function turretHitMonster(bullet, monster) {
-    var killTween = game.add.tween(monster.scale);
+        return monster;
+    },
+    releaseMonster : function() {
+        var monster = this.monsters.getFirstDead();   
+        
+        if(monster) {
+            // reset health etc
+            
+        } else {
+            monster = this.createMonster();
+            this.monsters.add(monster);
+        }
+    },
     
-    // set 1px away from turret
-    monster.body.velocity.set(0, 0);
-    
-    killTween.to({x:0,y:0}, 200, Phaser.Easing.Linear.None);
-    killTween.onComplete.addOnce(function(){
+    monsterLeaveScreen : function (monster) {
         monster.kill();
-    }, this);
-
-    killTween.start();
-
-    score += 10;
-    scoreText.setText("Points: " + score);
+        
+        this.lives--;
+        
+        if(this.lives) {
+            this.livesText.setText('Lives: ' + this.lives);
+        }
+        else {
+            alert('You lost, game over!');
+            location.reload();
+        }
+    },
     
-    if(gameOver()) {
-      alert('You won the game, congratulations!');
-      location.reload();        
-    }
-}
+    findTarget : function (turret) {
+        var monsterCount = this.monsters.countLiving();
 
-function gameOver() {
-    var count_alive = 0;
-    for (var i = 0; i < monsters.children.length; i++) {
-      if (monsters.children[i].alive == true) {
-        count_alive++;
-      }
-    }
-    if (count_alive == 0) {
-      alert('You won the game, congratulations!');
-      location.reload();
-    }
-}
-
-function monsterLeaveScreen() {
-    lives--;
-    if(lives) {
-        livesText.setText('Lives: '+lives);
-        lifeLostText.visible = true;
-    }
-    else {
-        alert('You lost, game over!');
-        location.reload();
-    }
-}
-
-function startGame() {
-    startButton.destroy();
+        for(var i = 0; i < monsterCount; i++) {
+            var m = this.monsters.children[i];
+            if(this.physics.arcade.distanceBetween(turret, m) < 100) {
+                this.fireTurret(turret, m);
+                return; 
+            }            
+        }
+    },
     
-    monsters.forEach(function(monster) {
-        monster.body.velocity.set(150, 0);
-    });
-
-    playing = true;
-}
-
-function fire(monster) {
-    if (game.time.now > nextFire && bullets.countDead() > 0)
-    {
-        nextFire = game.time.now + fireRate;
-
-        var bullet = bullets.getFirstDead();
+    fireTurret : function (turret, monster) {
+        
+        var bullet = this.bullets.getFirstDead();
 
         bullet.reset(turret.x-20, turret.y-20);
 
-        game.physics.arcade.moveToObject(bullet, monster, 400);
-    }
+        this.physics.arcade.moveToObject(bullet, monster, 400);
 
-}
-
-function plot () {
-    // this.bmd.clear();
-    var mode = 1;
-    path = [];
-    var x = 1 / game.width;
-    for (var i = 0; i <= 1; i += x)
-    {
-        if (mode === 0)
-        {
-            var px = game.math.linearInterpolation(points.x, i);
-            var py = game.math.linearInterpolation(points.y, i);
+    },
+    
+    gameOver : function () {
+        if (this.monsters.countLiving() === 0) {
+            alert('You won the game, congratulations!');
+            location.reload();
         }
-        else if (mode === 1)
-        {
-            var px = game.math.bezierInterpolation(points.x, i);
-            var py = game.math.bezierInterpolation(points.y, i);
-        }
-        else if (mode === 2)
-        {
-            var px = this.math.catmullRomInterpolation(points.x, i);
-            var py = this.math.catmullRomInterpolation(points.y, i);
-        }
-        
-        path.push( { x: px, y: py });
-        // this.bmd.rect(px, py, 1, 1, 'rgba(255, 255, 255, 1)');
     }
     
-    // for (var p = 0; p < this.points.x.length; p++)
-    // {
-    //     this.bmd.rect(this.points.x[p]-3, this.points.y[p]-3, 6, 6, 'rgba(255, 0, 0, 1)');
-    // }
-}
+};
+
+var game = new Phaser.Game(800, 595, Phaser.AUTO, 'game');
+
+game.state.add('CravenDefense.Preloader', CravenDefense.Preloader);
+game.state.add('CravenDefense.Game', CravenDefense.Game);
+
+game.state.start('CravenDefense.Preloader');
