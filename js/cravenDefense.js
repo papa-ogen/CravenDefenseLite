@@ -32,7 +32,8 @@ CravenDefense.Preloader.prototype = {
 };
 
 CravenDefense.Game = function () {
-    
+    this.startTimer = Phaser.Timer.SECOND * 1;
+
     this.score = 0;
     this.scoreText = null;
     
@@ -72,6 +73,14 @@ CravenDefense.Game = function () {
     this.bullets = null;
     this.explosions = null;   
     this.lasers = null; 
+
+    // Map
+    this.bmd = null;
+    this.points = {
+        'x': [ 0, 32, 128, 256, 384, 512, 608, 800 ],
+        'y': [ 200, 240, 240, 240, 240, 240, 240, 240 ]
+    };
+    this.path = [];
     
     this.pauseKey = null;
     this.debugKey = null;
@@ -83,6 +92,8 @@ CravenDefense.Game.prototype = {
     init: function () {
         this.score = 0;
         this.lives = 10;
+
+        this.waveCount = 0;
     },
     
     preload: function () {
@@ -137,7 +148,7 @@ CravenDefense.Game.prototype = {
         /******* Monsters *********/
         this.monsters = this.add.group();
         
-        this.time.events.add(Phaser.Timer.SECOND * 4, this.releaseMonster, this);
+        this.time.events.add(this.startTimer, this.releaseMonster, this);
 
         /******* Turrets *********/
         this.turrets = this.add.group();
@@ -151,13 +162,26 @@ CravenDefense.Game.prototype = {
         this.bullets.setAll('checkWorldBounds', true);
         this.bullets.setAll('outOfBoundsKill', true);
         
-        // Explosion
+        // Explosion - http://phaser.io/tutorials/coding-tips-007
         this.explosions = this.add.group();
         this.explosions.createMultiple(30, 'kaboom');
         this.explosions.forEach(this.setupExplosion, this);
         
         // Laser
         this.lasers = this.add.group();
+
+        /******* Map *********/
+        this.bmd = this.add.bitmapData(this.game.width, this.game.height);
+        this.bmd.addToWorld();
+
+        var py = this.points.y;
+
+        for (var i = 0; i < py.length; i++)
+        {
+            py[i] = this.rnd.between(32, 432);
+        }
+
+        this.plot();
         
         //  Press P to pause and resume the game
         this.pauseKey = this.input.keyboard.addKey(Phaser.Keyboard.P);
@@ -170,7 +194,8 @@ CravenDefense.Game.prototype = {
     },
     
     update: function () {
-        
+        this.monsters.forEachAlive(this.moveMonster, this);
+
         this.turrets.forEachAlive(this.findTarget, this);      
         
         this.physics.arcade.overlap(this.bullets, this.monsters, this.collisionHandler, null, this);
@@ -204,6 +229,7 @@ CravenDefense.Game.prototype = {
     },
     
     onDragStop: function (sprite, pointer) {
+
         var turret = this.game.add.sprite(pointer.x, pointer.y, sprite.key, sprite.frame);
         turret.anchor.set(0.5,0.5);
         turret.name = sprite.name;
@@ -223,7 +249,7 @@ CravenDefense.Game.prototype = {
             turret.weapon.fireRate = sprite.fireRate;
             turret.weapon.trackSprite(turret, 0, 0, true);
             
-            //this.lasers.add(turret.weapon);
+            // this.lasers.add(turret.weapon);
         }
         
         this.turrets.add(turret);
@@ -232,7 +258,7 @@ CravenDefense.Game.prototype = {
         
     },
   
-    releaseMonster : function() {
+    releaseMonster: function() {
         
         if(this.waveMonsterCount == this.waveDist[this.waveCount].amount) {
             this.waveMonsterCount = 0;
@@ -252,13 +278,15 @@ CravenDefense.Game.prototype = {
         monster.body.velocity.x = this.monsterSpeed;
         monster.checkWorldBounds = true;
         monster.events.onOutOfBounds.add(this.monsterLeaveScreen, this);
+        monster.pi = 0;
        
         this.time.events.add(this.monsterReleaseRate, this.releaseMonster, this);
         
         this.waveMonsterCount++;
+
     },
     
-    monsterLeaveScreen : function (monster) {
+    monsterLeaveScreen: function (monster) {
         monster.kill();
         
         this.lives--;
@@ -272,7 +300,8 @@ CravenDefense.Game.prototype = {
         }
     },
     
-    findTarget : function (turret) {
+    findTarget: function (turret) {
+
         var monsterCount = this.monsters.countLiving();
 
         for(var i = 0; i < monsterCount; i++) {
@@ -288,9 +317,11 @@ CravenDefense.Game.prototype = {
                 }
             }            
         }
+
     },
     
-    fireTurret : function (turret, monster) {
+    fireTurret: function (turret, monster) {
+
         //  To avoid them being allowed to fire too fast we set a time limit
         if (this.time.now > turret.lastShot)
         {
@@ -305,6 +336,7 @@ CravenDefense.Game.prototype = {
                 turret.lastShot = this.time.now + turret.fireRate;
             }
         }
+
     },
     
     setupExplosion : function (monster) {
@@ -347,17 +379,67 @@ CravenDefense.Game.prototype = {
 
     }, 
     
-    resetBullet : function (bullet) {
+    resetBullet: function (bullet) {
         //  Called if the bullet goes out of the screen
         bullet.kill();
 
     },
     
-    gameOver : function () {
+    gameOver: function () {
+
         if (this.monsters.countLiving() === 0 && this.waveCount === this.waveDist.length) {
             alert('You won the game, congratulations!');
             this.state.start('CravenDefense.Preloader');
         }
+
+    },
+
+    plot: function () {
+
+        this.bmd.clear();
+
+        var x = 1 / game.width,
+            ix;
+
+        for (var i = 0; i <= 1; i += x)
+        {
+            var px = this.math.catmullRomInterpolation(this.points.x, i);
+            var py = this.math.catmullRomInterpolation(this.points.y, i);
+
+            var node = { x: px, y: py, angle: 0 };
+
+            if (ix > 0)
+            {
+                node.angle = this.math.angleBetweenPoints(this.path[ix - 1], node);
+            }
+
+            this.path.push(node);
+            
+            ix++;
+            
+            this.bmd.rect(px, py, 1, 1, 'rgba(255, 255, 255, 1)');
+        }
+
+        for (var p = 0; p < this.points.x.length; p++)
+        {
+            this.bmd.rect(this.points.x[p]-3, this.points.y[p]-3, 6, 6, 'rgba(255, 0, 0, 1)');
+        }
+
+    },
+
+    moveMonster: function (monster) {
+// https://github.com/photonstorm/phaser-coding-tips/blob/master/issue-008/face.html
+        monster.x = this.path[monster.pi].x;
+        monster.y = this.path[monster.pi].y;
+        monster.rotation = this.path[monster.pi].angle;
+        
+        monster.pi++;
+
+        if (monster.pi >= this.path.length)
+        {
+            monster.pi = 0;
+        }
+
     }
     
 };
