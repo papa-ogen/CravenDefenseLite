@@ -1,5 +1,5 @@
 var CravenDefense = {
-    AMOUNT_OF_MONSTERS: 10
+    MONSTER1_SPRITE : 'monster1'
 };
 
 CravenDefense.Preloader = function() {};
@@ -12,10 +12,12 @@ CravenDefense.Preloader.prototype = {
 
     preload: function () {
         this.load.path = 'assets/images/';
-        this.load.images([ 'bg', 'monster', 'turret', 'bullet' ]);
+        this.load.images([ 'background', 'monster1', 'monster2', 'monster3', 'monster4', 'turret1', 'turret2', 'turret3', 'bullet' ]);
 
         this.load.spritesheet('wobble', 'wobble.png', 60, 20);
         this.load.spritesheet('button', 'button.png', 120, 40);
+        this.load.spritesheet('kaboom', 'explode.png', 128, 128);
+        this.load.spritesheet('laser', 'rgblaser.png', 4, 4);
     },
 
     create: function () {
@@ -37,25 +39,50 @@ CravenDefense.Game = function () {
     this.lives = 10;
     this.livesText = null;    
     
-    this.textStyle = { font: '18px Arial', fill: '#0095DD' },
+    this.money = 100;
+    this.moneyText = null;
+    
+    this.textStyle = { font: '18px Arial', fill: '#0095DD' };
+    
+    this.waveDist = [ { type: 'monster1', amount: 3 }, 
+                      { type: 'monster2', amount: 3 }, 
+                      { type: 'monster3', amount: 3 }, 
+                      { type: 'monster4', amount: 3 },
+                      { type: 'monster1', amount: 1 }, 
+                      { type: 'monster2', amount: 1 }, 
+                      { type: 'monster3', amount: 1 }, 
+                      { type: 'monster4', amount: 1 }                      
+    ];
+    this.waveCount = 0;
+    this.waveMonsterCount = 0;
+    this.waveText = null;
     
     this.monsters = null;
+    this.monsterSpeed = 150;
+    this.monsterReleaseRate = 1000;
     
     this.turrets = null;
+    this.turretFireRate = 500;
+    this.turretLastShot = null;
+    this.turretRange = 200;
+    
+    this.TurretStore = {};
+    this.TurretStore.turrets = null;
     
     this.bullets = null;
+    this.explosions = null;   
+    this.lasers = null; 
     
     this.pauseKey = null;
     this.debugKey = null;
-    this.showDebug = true;
+    this.showDebug = false;
 };
 
 CravenDefense.Game.prototype = {
     
     init: function () {
-        
-        this.monsterSpeed = 250;
-        
+        this.score = 0;
+        this.lives = 10;
     },
     
     preload: function () {
@@ -63,24 +90,59 @@ CravenDefense.Game.prototype = {
     },  
       
     create: function () {
+        /******* HUD *********/
+        this.add.image(0, 0, 'background');
+        this.livesText = this.add.text(5, 5, 'Lives: '+ this.lives, this.textStyle);
+        this.moneyText = this.add.text(5, 25, 'Money: '+ this.money, this.textStyle);
         
+        this.scoreText = this.add.text(this.world.width / 2, 5, 'Score: ' + this.score, this.textStyle);
+        this.waveText = this.add.text(this.world.width - 80, 5, 'Wave: '+ this.waveCount, this.textStyle);
+
+        /******* Turret Store *********/
+        this.TurretStore.turrets = this.add.group();
+        var storeTurret = this.add.sprite(this.world.width - 50, 50, 'turret1');
+        storeTurret.anchor.set(0.5,0.5);
+        this.physics.enable(storeTurret, Phaser.Physics.ARCADE);
+        storeTurret.body.immovable = true;       
+        storeTurret.name = "turret1";
+        storeTurret.fireRate = 1000;
+        storeTurret.lastShot = null;
+        storeTurret.range = 500;
+        storeTurret.body.allowRotation = false;
+        storeTurret.inputEnabled = true;
+        storeTurret.input.enableDrag();
+        storeTurret.originalPosition = storeTurret.position.clone();
+        storeTurret.events.onDragStart.add(this.onDragStart, this);
+        storeTurret.events.onDragStop.add(this.onDragStop, this);
+        
+        this.TurretStore.turrets.add(storeTurret);
+        
+        storeTurret = this.add.sprite(this.world.width - 50, 75, 'turret2');
+        storeTurret.anchor.set(0.5,0.5);
+        this.physics.enable(storeTurret, Phaser.Physics.ARCADE);
+        storeTurret.body.immovable = true;       
+        storeTurret.name = "turret2";
+        storeTurret.fireRate = 500;
+        storeTurret.lastShot = null;
+        storeTurret.range = 200;
+        storeTurret.body.allowRotation = false;
+        storeTurret.inputEnabled = true;
+        storeTurret.input.enableDrag();
+        storeTurret.originalPosition = storeTurret.position.clone();
+        storeTurret.events.onDragStart.add(this.onDragStart, this);
+        storeTurret.events.onDragStop.add(this.onDragStop, this);    
+        
+        this.TurretStore.turrets.add(storeTurret);    
+            
         /******* Monsters *********/
         this.monsters = this.add.group();
-        // this.createMonsters();
         
-        this.releaseMonster();
+        this.time.events.add(Phaser.Timer.SECOND * 4, this.releaseMonster, this);
 
         /******* Turrets *********/
         this.turrets = this.add.group();
         
-        var turret = this.add.sprite(this.world.width/2, this.world.height/2, 'turret');
-        turret.anchor.set(0.5,0.5);
-        this.physics.enable(turret, Phaser.Physics.ARCADE);
-        turret.body.immovable = true;       
-        
-        this.turrets.add(turret); 
-        
-        /******* Bullets *********/
+        /******* Bullets and Stuff *********/
         this.bullets = this.add.group();
         this.bullets.enableBody = true;
         this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
@@ -89,10 +151,13 @@ CravenDefense.Game.prototype = {
         this.bullets.setAll('checkWorldBounds', true);
         this.bullets.setAll('outOfBoundsKill', true);
         
-        /******* HUD *********/
-        this.scoreText = this.add.text(5, 5, 'Score: ' + this.score, this.textStyle);
-        this.livesText = this.add.text(5, 25, 'Lives: '+ this.lives, this.textStyle);
-        this.livesText.anchor.set(0,0);        
+        // Explosion
+        this.explosions = this.add.group();
+        this.explosions.createMultiple(30, 'kaboom');
+        this.explosions.forEach(this.setupExplosion, this);
+        
+        // Laser
+        this.lasers = this.add.group();
         
         //  Press P to pause and resume the game
         this.pauseKey = this.input.keyboard.addKey(Phaser.Keyboard.P);
@@ -108,6 +173,9 @@ CravenDefense.Game.prototype = {
         
         this.turrets.forEachAlive(this.findTarget, this);      
         
+        this.physics.arcade.overlap(this.bullets, this.monsters, this.collisionHandler, null, this);
+        this.physics.arcade.overlap(this.lasers, this.monsters, this.collisionHandler, null, this);
+        
         this.gameOver();
           
     },
@@ -121,53 +189,73 @@ CravenDefense.Game.prototype = {
              
              this.game.debug.text("Monsters: " + this.monsters.countLiving(), 600, 32);
              this.game.debug.text("Turrets: " + this.turrets.countLiving(), 600, 64);
-        }         
-    },
-    
-    renderBody: function (sprite) {
-
-        this.game.debug.body(sprite);
-
-    },
-    
-    togglePause: function () {
-
-        this.game.paused = (this.game.paused) ? false : true;
-
-    },
-
-    toggleDebug: function () {
-
-        this.showDebug = (this.showDebug) ? false : true;
-
-    },    
-    
-    clickedIt : function(event) {
-        console.log("clicked it");
-    },
-    
-    createMonster : function () {
-        var monster = this.add.sprite(0, game.world.height/3, 'monster');
-        
-        this.physics.enable(monster, Phaser.Physics.ARCADE);
-        monster.body.immovable = true;
-        monster.anchor.set(0.5);
-        monster.body.velocity.set(this.monsterSpeed, 0);
-        monster.checkWorldBounds = true;
-        monster.events.onOutOfBounds.add(this.monsterLeaveScreen, this);  
+        }     
             
-        return monster;
     },
-    releaseMonster : function() {
-        var monster = this.monsters.getFirstDead();   
-        
-        if(monster) {
-            // reset health etc
+    
+    renderBody: function (sprite) { this.game.debug.body(sprite); },
+    
+    togglePause: function () { this.game.paused = !this.game.paused; },
+
+    toggleDebug: function () { this.showDebug = !this.showDebug; },
+    
+    onDragStart: function (sprite, pointer) {
+
+    },
+    
+    onDragStop: function (sprite, pointer) {
+        var turret = this.game.add.sprite(pointer.x, pointer.y, sprite.key, sprite.frame);
+        turret.anchor.set(0.5,0.5);
+        turret.name = sprite.name;
+        turret.lastShot = sprite.lastShot;
+        turret.range = sprite.range;  
             
-        } else {
-            monster = this.createMonster();
-            this.monsters.add(monster);
+        if (sprite.name === "turret1") {
+            
+            turret.fireRate = sprite.fireRate;
+                  
+        } else if (sprite.name === "turret2") {
+            
+            turret.weapon = game.add.weapon(40, 'laser');
+            turret.weapon.setBulletFrames(0, 80, true);
+            turret.weapon.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+            turret.weapon.bulletSpeed = 400;
+            turret.weapon.fireRate = sprite.fireRate;
+            turret.weapon.trackSprite(turret, 0, 0, true);
+            
+            //this.lasers.add(turret.weapon);
         }
+        
+        this.turrets.add(turret);
+        
+        sprite.position.copyFrom(sprite.originalPosition);
+        
+    },
+  
+    releaseMonster : function() {
+        
+        if(this.waveMonsterCount == this.waveDist[this.waveCount].amount) {
+            this.waveMonsterCount = 0;
+            this.waveCount++;
+            this.waveText.text = "Wave: " + this.waveCount;
+        }
+        
+        if(this.waveCount === this.waveDist.length) return;
+        
+        var wave = this.waveDist[this.waveCount];
+        
+        var monster = this.monsters.getFirstDead(true, 0, this.world.height/3, wave.type);
+        
+        this.physics.arcade.enable(monster);
+        monster.anchor.set(0.5);
+        monster.body.immovable = true;
+        monster.body.velocity.x = this.monsterSpeed;
+        monster.checkWorldBounds = true;
+        monster.events.onOutOfBounds.add(this.monsterLeaveScreen, this);
+       
+        this.time.events.add(this.monsterReleaseRate, this.releaseMonster, this);
+        
+        this.waveMonsterCount++;
     },
     
     monsterLeaveScreen : function (monster) {
@@ -176,7 +264,7 @@ CravenDefense.Game.prototype = {
         this.lives--;
         
         if(this.lives) {
-            this.livesText.setText('Lives: ' + this.lives);
+            this.livesText.text = "Lives: " + this.lives;
         }
         else {
             alert('You lost, game over!');
@@ -188,28 +276,87 @@ CravenDefense.Game.prototype = {
         var monsterCount = this.monsters.countLiving();
 
         for(var i = 0; i < monsterCount; i++) {
-            var m = this.monsters.children[i];
-            if(this.physics.arcade.distanceBetween(turret, m) < 100) {
-                this.fireTurret(turret, m);
-                return; 
+            var monster = this.monsters.children[i];
+            if (this.physics.arcade.distanceBetween(turret, monster) < this.turretRange) {
+                turret.rotation = this.physics.arcade.angleBetween(turret, monster);
+
+                if (turret.name === "turret1") {
+                    this.fireTurret(turret, monster);
+                    return; 
+                } else if (turret.name === "turret2") {
+                    turret.weapon.fire();
+                }
             }            
         }
     },
     
     fireTurret : function (turret, monster) {
+        //  To avoid them being allowed to fire too fast we set a time limit
+        if (this.time.now > turret.lastShot)
+        {
+            //  Grab the first bullet we can from the pool
+            var bullet = this.bullets.getFirstExists(false);
+
+            if (bullet)
+            {
+                //  And fire it
+                bullet.reset(turret.x-5, turret.y -5);
+                this.physics.arcade.moveToObject(bullet, monster, 400);
+                turret.lastShot = this.time.now + turret.fireRate;
+            }
+        }
+    },
+    
+    setupExplosion : function (monster) {
         
-        var bullet = this.bullets.getFirstDead();
+        monster.anchor.x = 0.5;
+        monster.anchor.y = 0.5;
+        monster.animations.add('kaboom');        
+    
+    },
+    
+    collisionHandler : function  (bullet, monster) {
 
-        bullet.reset(turret.x-20, turret.y-20);
+        //  When a bullet hits an alien we kill them both
+        bullet.kill();
+        monster.kill();
 
-        this.physics.arcade.moveToObject(bullet, monster, 400);
+        //  Increase the score
+        this.score += 20;
+        this.scoreText.text = "Score: " + this.score;
+        
+        this.money += 25;
+        this.moneyText.text = "Money: " + this.money;        
+
+        //  And create an explosion :)
+        var explosion = this.explosions.getFirstExists(false);
+            explosion.reset(monster.body.x, monster.body.y);
+            explosion.play('kaboom', 30, false, true);
+
+        if (this.monsters.countLiving() == 0 && this.waveCount === this.waveDist.length)
+        {
+            this.score += 1000;
+            this.scoreText.text = "Score: " + this.score;
+
+            this.money += 200;
+            this.moneyText.text = "Money: " + this.money;
+
+
+            this.gameOver();
+        }
+
+    }, 
+    
+    resetBullet : function (bullet) {
+        //  Called if the bullet goes out of the screen
+        bullet.kill();
 
     },
     
     gameOver : function () {
-        if (this.monsters.countLiving() === 0) {
+        if (this.monsters.countLiving() === 0 && this.waveCount === this.waveDist.length) {
             alert('You won the game, congratulations!');
-            location.reload();
+            this.state.start('CravenDefense.Preloader');
         }
     }
     
