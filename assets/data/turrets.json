@@ -1,11 +1,19 @@
 [{
 	"type": "turret1",
+	"cost": 100,
 	"name": "Mr Rice",
 	"inputEnabled": true,
 	"weapon": "SingleBullet"
 }, {
 	"type": "turret2",
+	"cost": 200,
 	"name": "Didde Drake",
 	"inputEnabled": true,
 	"weapon": "Beam"
+}, {
+	"type": "turret3",
+	"cost": 50,
+	"name": "Tuppen",
+	"inputEnabled": true,
+	"weapon": "ScatterShot"
 }]

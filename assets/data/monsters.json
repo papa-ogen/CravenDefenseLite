@@ -2,20 +2,20 @@
 	"type": "monster1",
 	"speed": 100,
 	"pi": 0,
-	"lives": 20
+	"health": 20
 }, {
 	"type": "monster2",
 	"speed": 50,
 	"pi": 0,
-	"lives": 50
+	"health": 50
 }, {
 	"type": "monster3",
 	"speed": 80,
 	"pi": 0,
-	"lives": 25
+	"health": 25
 }, {
 	"type": "monster4",
 	"speed": 10,
 	"pi": 0,
-	"lives": 1000
+	"health": 1000
 }]
