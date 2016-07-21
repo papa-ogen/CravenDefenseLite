@@ -45,12 +45,13 @@ var Weapon = {};
 /******* Single Bullet *********/
 Weapon.SingleBullet = function (game) {
     
-    Phaser.Group.call(this, game, game.world, 'Single Bullet', false, true, Phaser.Physics.ARCADE);
+    Phaser.Group.call(this, game, game.world, 'SingleBullet', false, true, Phaser.Physics.ARCADE);
     
     this.nextFire = 0;
     this.bulletSpeed = 600;
-    this.fireRate = 100;
-    this.range = 200; // Not implemented
+    this.fireRate = 1000;
+    this.range = 200;
+    this.dmg = 5;
     
     for (var i = 0; i < 64; i++)
     {
@@ -64,7 +65,6 @@ Weapon.SingleBullet = function (game) {
 Weapon.SingleBullet.prototype = Object.create(Phaser.Group.prototype);
 Weapon.SingleBullet.prototype.constructor = Weapon.SingleBullet;
 Weapon.SingleBullet.prototype.fire = function (source, target) {
-    this.trackedSprite = source;
     
     if (this.game.time.time < this.nextFire) { return; }
     
@@ -80,14 +80,15 @@ Weapon.SingleBullet.prototype.fire = function (source, target) {
 /******* Scatter Shot *********/
 Weapon.ScatterShot = function (game) {
     
-    Phaser.Group.call(this, game, game.world, 'Scatter Shot', false, true, Phaser.Physics.ARCADE);
+    Phaser.Group.call(this, game, game.world, 'ScatterShot', false, true, Phaser.Physics.ARCADE);
     
     this.nextFire = 0;
     this.bulletSpeed = 600;
-    this.fireRate = 40;
-    this.range = 50; // Not implemented
+    this.fireRate = 2000;
+    this.range = 100;
+    this.dmg = 10;
     
-    for (var i = 0; i < 32; i++)
+    for (var i = 0; i < 100; i++)
     {
         this.add(new Bullet(game, 'bullet5'), true);
     }
@@ -113,21 +114,32 @@ Weapon.ScatterShot.prototype.fire = function (source, target) {
 /******* Beam *********/
 Weapon.Beam = function (game) {
     Phaser.Group.call(this, game, game.world, 'Beam', false, true, Phaser.Physics.ARCADE);
+    
     this.nextFire = 0;
     this.bulletSpeed = 1000;
     this.fireRate = 500;
+    this.range = 100;
+    this.dmg = 10;
+    
     for (var i = 0; i < 64; i++)
     {
         this.add(new Bullet(game, 'bullet11'), true);
     }
+    
     return this;
+    
 };
+
 Weapon.Beam.prototype = Object.create(Phaser.Group.prototype);
 Weapon.Beam.prototype.constructor = Weapon.Beam;
 Weapon.Beam.prototype.fire = function (source, target) {
+    
     if (this.game.time.time < this.nextFire) { return; }
+    
     var x = source.x + 40;
     var y = source.y + 10;
+    
     this.getFirstExists(false).fire(x, y, 0, this.bulletSpeed, target);
     this.nextFire = this.game.time.time + this.fireRate;
+    
 };
