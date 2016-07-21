@@ -1,0 +1,10 @@
+[{
+	"name": "Papi",
+	"score": 0,
+	"lives": 10,
+	"money": 100,
+	"settings": [{
+		"sound": false,
+		"music": false
+	}]
+}]

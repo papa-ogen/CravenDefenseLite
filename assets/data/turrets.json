@@ -1,0 +1,11 @@
+[{
+	"type": "turret1",
+	"name": "Mr Rice",
+	"inputEnabled": true,
+	"weapon": "SingleBullet"
+}, {
+	"type": "turret2",
+	"name": "Didde Drake",
+	"inputEnabled": true,
+	"weapon": "Beam"
+}]
