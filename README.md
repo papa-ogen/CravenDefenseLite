@@ -1,3 +1,3 @@
-CravenDefenseLite
+CravenDefense
 =================
-A turret defense game built on native JavaScript
+A turret defense game built on Phaser.io
