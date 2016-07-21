@@ -15,7 +15,7 @@ CravenDefense.Game = function () {
     this.textStyle = { font: "18px Arial", fill: "#0095DD" };
     this.textStyle2 = { font: "18px Arial", fill: "#000000" };
     
-    this.waveDist = [ { type: "monster1", amount: 3, monsterInterval: 2000, waveInterval: 5000 }, 
+    this.waveDist = [ { type: "monster1", amount: 1, monsterInterval: 2000, waveInterval: 5000 }, 
                       { type: "monster2", amount: 3, monsterInterval: 2000, waveInterval: 5000 }, 
                       { type: "monster3", amount: 3, monsterInterval: 1000, waveInterval: 5000 }, 
                       { type: "monster4", amount: 3, monsterInterval: 2000, waveInterval: 5000 },
@@ -24,8 +24,10 @@ CravenDefense.Game = function () {
                       { type: "monster3", amount: 1, monsterInterval: 3000, waveInterval: 5000 }, 
                       { type: "monster4", amount: 1, monsterInterval: 2000, waveInterval: 5000 }                      
     ];
+    this.wavesTotal = this.waveDist.length - 1;
     this.waveCount = 0;
     this.waveMonsterCount = 0;
+    this.currentWave = this.waveDist[0];
     this.waveText = null;
     
     this.monsters = null;
@@ -64,7 +66,7 @@ CravenDefense.Game.prototype = {
         
         // Turret Data
         this.turretTypes = data.turrets;
-        this.test = new TurretStore(this.game);
+        // this.test = new TurretStore(this.game);
         
         // Monster Data
         this.monsterTypes = data.monsters;
@@ -83,7 +85,7 @@ CravenDefense.Game.prototype = {
         this.moneyText = this.add.text(5, 25, "Money: "+ this.money, this.textStyle);
         
         this.scoreText = this.add.text(this.world.width / 2, 5, "Score: " + this.score, this.textStyle);
-        this.waveText = this.add.text(this.world.width - 80, 5, "Wave: "+ this.waveCount, this.textStyle);
+        this.waveText = this.add.text(this.world.width - 90, 5, "Wave: "+ (this.waveCount + 1) + "/" + (this.wavesTotal + 1), this.textStyle);
         
         this.killTexts = this.add.group();
         var text = this.add.text(0, 0, "Kill", this.textStyle2, this.killTexts);
@@ -200,6 +202,7 @@ CravenDefense.Game.prototype = {
     },
     
     update: function () {
+
         this.monsters.forEachAlive(this.moveMonster, this);
 
         this.turrets.forEachAlive(this.findTarget, this);      
@@ -209,7 +212,7 @@ CravenDefense.Game.prototype = {
         this.physics.arcade.overlap(this.scatterShots, this.monsters, this.collisionHandler, null, this);
         
         this.gameOver();
-          
+
     },
     
     render: function () {
@@ -270,29 +273,34 @@ CravenDefense.Game.prototype = {
     },
   
     releaseMonster: function() {
+
+        if(this.waveCount > this.wavesTotal) return;
+
+        var currentWave = this.waveDist[this.waveCount];
+
+        this.waveText.text = "Wave: " + (this.waveCount + 1) + "/" + (this.wavesTotal + 1);
         
-        if(this.waveMonsterCount == this.waveDist[this.waveCount].amount) {
+        if(this.waveMonsterCount === currentWave.amount) {
             this.waveMonsterCount = 0;
             this.waveCount++;
-            this.waveText.text = "Wave: " + this.waveCount;
-            
-            this.time.events.add(this.waveDist[this.waveCount].waveInterval, this.releaseMonster, this);
-            
+
             return;
-            
+
         }
         
-        if(this.waveCount === this.waveDist.length) return;
-        
-        var wave = this.waveDist[this.waveCount];
-                
-        var monster = this.monsters.getFirstDead(true, 0, this.world.height/3, wave.type);
+        var monster = this.monsters.getFirstDead(true, 0, this.world.height/3, currentWave.type);
         monster.pi = 0;
         monster.health = monster.maxHealth;
-       
-        this.time.events.add(wave.monsterInterval, this.releaseMonster, this);
+
+        this.time.events.add(currentWave.monsterInterval, this.releaseMonster, this);
         
         this.waveMonsterCount++;
+
+    },
+
+    releaseWave : function (interval, callback) {
+
+        this.time.events.add(interval, callback, this);
 
     },
     
@@ -346,6 +354,7 @@ CravenDefense.Game.prototype = {
         monster.damage(10);
         
         // Impact
+        // Todo: Add impact to Weapon factory
         switch(bulletType) {
             case "ScatterShot":
             
@@ -387,6 +396,14 @@ CravenDefense.Game.prototype = {
                 this.add.tween(text).to( { alpha: 0 }, 500, "Linear", true);  
                               
             }
+
+            if(this.waveCount === this.wavesTotal) {
+                text = this.add.text(this.world.width / 2, this.world.height / 2, "Final Wave", this.textStyle2);
+                text.anchor.set(0.5);
+                this.add.tween(text).to( { alpha: 0 }, 2000, "Linear", true);
+            }
+
+            this.releaseWave(this.currentWave.waveInterval, this.releaseMonster);
             
             return;
         }  
