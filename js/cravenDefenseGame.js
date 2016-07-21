@@ -34,8 +34,8 @@ CravenDefense.Game = function () {
     
     this.turrets = null;
     
-    this.TurretStore = {};
-    this.TurretStore.turrets = null;
+    this.store = {};
+    this.store.turrets = null;
     
     this.explosions = null;   
     this.lasers = null; 
@@ -66,7 +66,6 @@ CravenDefense.Game.prototype = {
         
         // Turret Data
         this.turretTypes = data.turrets;
-        // this.test = new TurretStore(this.game);
         
         // Monster Data
         this.monsterTypes = data.monsters;
@@ -93,57 +92,29 @@ CravenDefense.Game.prototype = {
         text.alive = false;
         
         /******* Turret Store *********/
-        this.TurretStore.turrets = this.add.group();
-        var storeTurret = this.add.sprite(this.world.width - 50, 50, "turret1");
-        storeTurret.anchor.set(0.5,0.5);
-        this.physics.enable(storeTurret, Phaser.Physics.ARCADE);
-        storeTurret.body.immovable = true;
-        storeTurret.name = this.turretTypes[0].name;
-        storeTurret.weapon = this.turretTypes[0].weapon;
-        storeTurret.cost = this.turretTypes[0].cost;
-        storeTurret.body.allowRotation = false;
-        storeTurret.inputEnabled = true;
-        storeTurret.input.enableDrag();
-        storeTurret.originalPosition = storeTurret.position.clone();
-        storeTurret.events.onDragStart.add(this.onDragStart, this);
-        storeTurret.events.onDragStop.add(this.onDragStop, this);
-        
-        this.TurretStore.turrets.add(storeTurret);
-        
-        storeTurret = this.add.sprite(this.world.width - 50, 75, "turret2");
-        storeTurret.anchor.set(0.5,0.5);
-        this.physics.enable(storeTurret, Phaser.Physics.ARCADE);
-        storeTurret.body.immovable = true;       
-        storeTurret.name = this.turretTypes[1].name;
-        storeTurret.weapon = this.turretTypes[1].weapon;
-        storeTurret.cost = this.turretTypes[1].cost;
-        storeTurret.body.allowRotation = false;
-        storeTurret.inputEnabled = true;
-        storeTurret.input.enableDrag();
-        storeTurret.originalPosition = storeTurret.position.clone();
-        storeTurret.events.onDragStart.add(this.onDragStart, this);
-        storeTurret.events.onDragStop.add(this.onDragStop, this);    
-        
-        this.TurretStore.turrets.add(storeTurret);    
-        
-        storeTurret = this.add.sprite(this.world.width - 50, 100, "turret3");
-        storeTurret.anchor.set(0.5,0.5);
-        this.physics.enable(storeTurret, Phaser.Physics.ARCADE);
-        storeTurret.body.immovable = true;       
-        storeTurret.name = this.turretTypes[2].name;
-        storeTurret.weapon = this.turretTypes[2].weapon;
-        storeTurret.cost = this.turretTypes[2].cost;
-        storeTurret.body.allowRotation = false;
-        storeTurret.inputEnabled = true;
-        storeTurret.input.enableDrag();
-        storeTurret.originalPosition = storeTurret.position.clone();
-        storeTurret.events.onDragStart.add(this.onDragStart, this);
-        storeTurret.events.onDragStop.add(this.onDragStop, this);    
-        
-        this.TurretStore.turrets.add(storeTurret);          
+        this.store = new Store.Turrets(this.game, this.turretTypes);
+        this.store.setAll('anchor.x', 0.5);
+        this.store.setAll('anchor.y', 0.5);
+
+        var y = 50;
+        for(var st=0; st < this.store.children.length; st++) {
             
+            var storeTurret = this.store.children[st];
+
+            storeTurret.x = this.world.width - 50;
+            storeTurret.y = y;
+
+            storeTurret.input.enableDrag();
+            storeTurret.originalPosition = storeTurret.position.clone();
+            storeTurret.events.onDragStart.add(this.onDragStart, this);
+            storeTurret.events.onDragStop.add(this.onDragStop, this);     
+
+            y += 25;
+        }
+
         /******* Monsters *********/
         this.monsters = this.add.group();
+        this.monsters.physicsBodyType = Phaser.Physics.ARCADE;
         
         for(var w = 0; w < this.waveDist.length; w++) {
             
