@@ -77,8 +77,8 @@ CravenDefense.Game = function () {
     // Map
     this.bmd = null;
     this.points = {
-        'x': [ 0, 32, 128, 256, 384, 512, 608, 800 ],
-        'y': [ 200, 240, 240, 240, 240, 240, 240, 240 ]
+        'x': [ 0, 32, 128, 256, 384, 512, 608, 800, 850 ],
+        'y': [ 200, 240, 240, 240, 240, 240, 240, 240, 240 ]
     };
     this.path = [];
     
@@ -133,7 +133,7 @@ CravenDefense.Game.prototype = {
         this.physics.enable(storeTurret, Phaser.Physics.ARCADE);
         storeTurret.body.immovable = true;       
         storeTurret.name = "turret2";
-        storeTurret.fireRate = 500;
+        storeTurret.fireRate = 100;
         storeTurret.lastShot = null;
         storeTurret.range = 200;
         storeTurret.body.allowRotation = false;
@@ -248,8 +248,8 @@ CravenDefense.Game.prototype = {
             turret.weapon.bulletSpeed = 400;
             turret.weapon.fireRate = sprite.fireRate;
             turret.weapon.trackSprite(turret, 0, 0, true);
-            
-            // this.lasers.add(turret.weapon);
+            // console.log(turret.weapon);
+            this.lasers.add(turret.weapon.bullets);
         }
         
         this.turrets.add(turret);
