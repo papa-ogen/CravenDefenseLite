@@ -8,8 +8,6 @@ CravenDefense.Preloader.prototype = {
         this.input.maxPointers = 1;
         this.scale.pageAlignHorizontally = true;
         
-        this.textStyle = { font: "18px Arial", fill: "#0095DD" };
-        
     },
 
     preload: function () {
@@ -43,20 +41,11 @@ CravenDefense.Preloader.prototype = {
         this.monsters = this.cache.getJSON("monsters");
         this.stages = this.cache.getJSON("stages");
         
-        var player = this.players[0];
-        
-        var welcomeText = this.add.text(this.world.centerX, this.world.centerY - 50, "Welcome: " + player.name, this.textStyle);
-        welcomeText.anchor.set(0.5,0.5);
-        
-        var startButton = this.add.button(this.world.centerX, this.world.centerY, "button", this.start, this, 1, 0, 2);
-        startButton.anchor.set(0.5);
-        
-        this.input.onDown.addOnce(this.start, this);
+        this.start();
         
     },
     start: function () {
-        
-        this.state.start("CravenDefense.Game", true, false, { players: this.players, 
+        this.state.start("CravenDefense.MainMenu", true, false, { players: this.players, 
                                                               turrets: this.turrets, 
                                                               monsters: this.monsters,
                                                               stages: this.stages
