@@ -1,9 +1,10 @@
 [{
-	"name": "Malin",
+	"name": "Mr Rice",
 	"score": 0,
 	"lives": 10,
 	"money": 100,
 	"turrets": [{
+		"name": "Didde",
 		"type": "turret1",
 		"xp": 0
 	}],

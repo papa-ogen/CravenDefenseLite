@@ -15,19 +15,11 @@ CravenDefense.Game = function () {
     this.textStyle = { font: "18px Arial", fill: "#0095DD" };
     this.textStyle2 = { font: "18px Arial", fill: "#000000" };
     
-    this.waveDist = [ { type: "monster1", amount: 1, monsterInterval: 2000, waveInterval: 5000 }, 
-                      { type: "monster2", amount: 3, monsterInterval: 2000, waveInterval: 5000 }, 
-                      { type: "monster3", amount: 3, monsterInterval: 1000, waveInterval: 5000 }, 
-                      { type: "monster4", amount: 3, monsterInterval: 2000, waveInterval: 5000 },
-                      { type: "monster1", amount: 1, monsterInterval: 3000, waveInterval: 5000 }, 
-                      { type: "monster2", amount: 1, monsterInterval: 3000, waveInterval: 5000 }, 
-                      { type: "monster3", amount: 1, monsterInterval: 3000, waveInterval: 5000 }, 
-                      { type: "monster4", amount: 1, monsterInterval: 2000, waveInterval: 5000 }                      
-    ];
-    this.wavesTotal = this.waveDist.length - 1;
-    this.waveCount = 0;
-    this.waveMonsterCount = 0;
-    this.currentWave = this.waveDist[0];
+    this.currentStage = null;
+    this.wavesTotal = null;
+    this.waveCount = null;
+    this.waveMonsterCount = null;
+    this.currentWave = null;
     this.waveText = null;
     
     this.monsters = null;
@@ -36,8 +28,8 @@ CravenDefense.Game = function () {
     
     this.store = {};
     this.store.turrets = null;
+    this.store.monsters = null;
     
-    this.explosions = null;   
     this.lasers = null; 
     this.bullets = null;
     this.scatterShots = null;
@@ -69,22 +61,44 @@ CravenDefense.Game.prototype = {
         
         // Monster Data
         this.monsterTypes = data.monsters;
-
-        this.waveCount = 0;
+        
+        // Stages Data
+        this.stages = data.stages;
+        this.currentStage = 1;
+        this.currentStageData = this.stages[0];
+        this.currentStageWaves = this.currentStageData.waves;
+        this.currentStageWavesTotal = this.currentStageData.waves.length;
+        this.currentWave = 1;
+        this.currentWaveData = this.currentStageData.waves[this.currentWave-1];
+        this.currentWaveMonsterCount = 1;
+        this.waveCount = 1;
     },
     
     preload: function () {
         this.load.path = "assets/";
     },  
       
-    create: function () {        
-        /******* HUD *********/
+    create: function () {       
         this.add.image(0, 0, "background");
+          
+        /******* Map *********/
+        this.bmd = this.add.bitmapData(this.game.width, this.game.height);
+        this.bmd.addToWorld();
+        
+        this.plot();
+        
+        // Maps    
+        // this.maps = new CravenDefense.Maps(this);
+        // this.maps.init();
+        // this.path = this.maps.path;       
+           
+        /******* HUD *********/
+        
         this.livesText = this.add.text(5, 5, "Lives: "+ this.lives, this.textStyle);
         this.moneyText = this.add.text(5, 25, "Money: "+ this.money, this.textStyle);
         
         this.scoreText = this.add.text(this.world.width / 2, 5, "Score: " + this.score, this.textStyle);
-        this.waveText = this.add.text(this.world.width - 90, 5, "Wave: "+ (this.waveCount + 1) + "/" + (this.wavesTotal + 1), this.textStyle);
+        this.waveText = this.add.text(this.world.width - 90, 5, "Wave: "+ this.currentWave + "/" + this.currentStageWavesTotal, this.textStyle);
         
         this.killTexts = this.add.group();
         var text = this.add.text(0, 0, "Kill", this.textStyle2, this.killTexts);
@@ -92,75 +106,64 @@ CravenDefense.Game.prototype = {
         text.alive = false;
         
         /******* Turret Store *********/
-        this.store = new Store.Turrets(this.game, this.turretTypes);
-        this.store.setAll('anchor.x', 0.5);
-        this.store.setAll('anchor.y', 0.5);
-
+        this.store.turrets = new Store.Turrets(this.game, this.turretTypes);
+        this.turrets = this.add.group();
+        
         var y = 50;
-        for(var st=0; st < this.store.children.length; st++) {
+        for(var st=0; st < this.store.turrets.children.length; st++) {
             
-            var storeTurret = this.store.children[st];
+            var storeTurret = this.store.turrets.children[st];
 
             storeTurret.x = this.world.width - 50;
             storeTurret.y = y;
 
             storeTurret.input.enableDrag();
-            storeTurret.originalPosition = storeTurret.position.clone();
             storeTurret.events.onDragStart.add(this.onDragStart, this);
-            storeTurret.events.onDragStop.add(this.onDragStop, this);     
+            storeTurret.events.onDragStop.add(this.onDragStop, this);   
 
-            y += 25;
+            y += 50;
         }
 
         /******* Monsters *********/
-        this.monsters = this.add.group();
-        this.monsters.physicsBodyType = Phaser.Physics.ARCADE;
+        this.store.monsters = new Store.Monsters(this.game, this.monsterTypes);
         
-        for(var w = 0; w < this.waveDist.length; w++) {
+        this.monsters = this.add.group();
+        this.monsters.enableBody = true;
+        this.monsters.physicsBodyType = Phaser.Physics.ARCADE;
+        this.monsters.createMultiple(10, "monster1", 0, false);
+        this.monsters.setAll('maxHealth', 20);
+        this.monsters.createMultiple(10, "monster2", 0, false);
+        this.monsters.createMultiple(10, "monster3", 0, false);
+        this.monsters.createMultiple(10, "monster4", 0, false);
+        this.monsters.setAll('anchor.x', 0.5);
+        this.monsters.setAll('anchor.y', 0.5);        
+        this.monsters.setAll('outOfBoundsKill', true);
+        this.monsters.setAll('checkWorldBounds', true);      
+        this.monsters.setAll("pi", 0);     
+        
+        // this.monsters.physicsBodyType = Phaser.Physics.ARCADE;
+        
+        // for(var w = 0; w < this.store.monsters.length; w++) {
             
-            for(var wc = 0; wc < this.waveDist[w].amount; wc++) {
-                var type = this.waveDist[w].type;
-                var mTypeObj = this.getObjectByKeyValue(this.monsterTypes, "type", "monster3"); 
-                var m = this.add.sprite(0, 0, type);
+        //     for(var m = 0; m < 10; m++) {
+        //         var m = this.store.monsters.children[w];
+        //         // var m = new Monster(this, mType);
+        //         m.outOfBoundsKill = true;
+        //         m.events.onOutOfBounds.add(this.monsterLeaveScreen, this);
+        //         m.alive = false;
+        //         m.visible = false;
                 
-                this.physics.arcade.enable(m);
-                m.anchor.set(0.5);
-                m.body.immovable = true;
-                m.checkWorldBounds = true;
-                m.events.onOutOfBounds.add(this.monsterLeaveScreen, this);
-                m.pi = mTypeObj.pi;
-                m.health = mTypeObj.health;
-                m.maxHealth = mTypeObj.health;
-                m.speed = mTypeObj.speed;                
-                m.alive = false;
-                m.type = mTypeObj;
-                m.visible = false;
-                this.monsters.add(m);
+        //         this.monsters.add(m, true);
                 
-            }
-            
-        }
+        //     }
+        // }    
         
         this.time.events.add(this.startTimer, this.releaseMonster, this);
 
-        /******* Turrets *********/
-        this.turrets = this.add.group();
-        
         /******* Weapons *********/
         this.bullets = this.add.group();
         this.lasers = this.add.group();
-        this.scatterShots = this.add.group();
-        
-        // Explosion - http://phaser.io/tutorials/coding-tips-007
-        this.explosions = this.add.group();
-        this.explosions.createMultiple(30, "kaboom");
-        this.explosions.forEach(this.setupExplosion, this);
-
-        /******* Map *********/
-        this.bmd = this.add.bitmapData(this.game.width, this.game.height);
-        this.bmd.addToWorld();
-
-        this.plot();
+        this.scatterShots = this.add.group(); 
         
         //  Press P to pause and resume the game
         this.pauseKey = this.input.keyboard.addKey(Phaser.Keyboard.P);
@@ -193,8 +196,8 @@ CravenDefense.Game.prototype = {
             this.game.debug.body(this.turrets);
             this.monsters.forEachAlive(this.renderBody, this);
              
-             this.game.debug.text("Monsters: " + this.monsters.countLiving(), 600, 32);
-             this.game.debug.text("Turrets: " + this.turrets.countLiving(), 600, 64);
+             this.game.debug.text("Monsters: " + this.monsters.countLiving() + "/" + this.monsters.countDead(), 600, 32);
+             this.game.debug.text("Turrets: " + this.turrets.countLiving() + "/" + this.turrets.countDead(), 600, 64);
         }     
             
     },
@@ -206,66 +209,93 @@ CravenDefense.Game.prototype = {
     toggleDebug: function () { this.showDebug = !this.showDebug; },
     
     onDragStart: function (sprite, pointer) {
-        if(this.player1.money <= sprite.cost) return false;
+        
+        if(this.player1.money < sprite.cost) {
+            // sprite.input.draggable = false;
+        }
     },
     
     onDragStop: function (sprite, pointer) {
 
-        var turret = this.game.add.sprite(pointer.x, pointer.y, sprite.key, sprite.frame);
-        turret.anchor.set(0.5,0.5);
-        turret.name = sprite.name;
-        
         switch(sprite.weapon) {
             case "ScatterShot":
             
-                turret.weapon = new Weapon.ScatterShot(this.game);
-                this.scatterShots.add(turret.weapon); 
+                sprite.weapon = new Weapon.ScatterShot(this.game);
+                this.scatterShots.add(sprite.weapon); 
                        
                 break;         
             case "Beam":
             
-                turret.weapon = new Weapon.Beam(this.game);
-                this.lasers.add(turret.weapon); 
+                sprite.weapon = new Weapon.Beam(this.game);
+                this.lasers.add(sprite.weapon); 
                        
                 break;                         
             default:
             case "SingleBullet":
             
-                turret.weapon = new Weapon.SingleBullet(this.game);
-                this.bullets.add(turret.weapon);  
+                sprite.weapon = new Weapon.SingleBullet(this.game);
+                this.bullets.add(sprite.weapon);  
                           
                 break;
         }
-            
-        this.turrets.add(turret);
         
-        sprite.position.copyFrom(sprite.originalPosition);
+        sprite.x = pointer.x;
+        sprite.y = pointer.y;
+        
+        sprite.input.draggable = false;
+            
+        this.turrets.add(sprite);
+        
+        this.player1.money -= sprite.cost;
+        this.moneyText.text = "Money: " + this.player1.money;
         
     },
   
     releaseMonster: function() {
-
-        if(this.waveCount > this.wavesTotal) return;
-
-        var currentWave = this.waveDist[this.waveCount];
-
-        this.waveText.text = "Wave: " + (this.waveCount + 1) + "/" + (this.wavesTotal + 1);
         
-        if(this.waveMonsterCount === currentWave.amount) {
-            this.waveMonsterCount = 0;
-            this.waveCount++;
+        if (this.currentStageWavesTotal < this.currentWave) return;
 
-            return;
+        if(this.currentWaveMonsterCount > this.currentWaveData.amount) {
+            this.currentWave++;
+            
+            if(this.currentWave <= this.currentStageWavesTotal) {
+            
+                this.currentWaveData = this.currentStageData.waves[this.currentWave-1];
+                this.currentWaveMonsterCount = 1;
+            
+            }
+            
+          return;  
+          
+        } 
 
+        this.waveText.text = "Wave: " + this.currentWave + "/" + this.currentStageWavesTotal;
+        
+        if(this.currentWave === this.currentStageWavesTotal && this.currentWaveMonsterCount === 1) {
+            var text = this.add.text(this.world.width / 2, this.world.height / 2, "Final Wave", this.textStyle2);
+            text.anchor.set(0.5);
+            this.add.tween(text).to( { alpha: 0 }, 2000, "Linear", true);
         }
         
-        var monster = this.monsters.getFirstDead(true, 0, this.world.height/3, currentWave.type);
-        monster.pi = 0;
-        monster.health = monster.maxHealth;
-
-        this.time.events.add(currentWave.monsterInterval, this.releaseMonster, this);
+        var monster = this.monsters.getFirstDead(this.currentWaveData.type);
         
-        this.waveMonsterCount++;
+        if (monster) {
+            monster.reset();
+            monster.pi = 0;
+            monster.health = monster.maxHealth;
+            monster.events.onOutOfBounds.add(this.monsterLeaveScreen, this);   
+        }
+        
+        // var monster = this.monsters.getFirstDead(true, 0, this.world.height/3, this.currentWaveData.type);
+        // monster.checkWorldBounds = true;
+        // monster.outOfBoundsKill = true;
+        // monster.events.onOutOfBounds.add(this.monsterLeaveScreen, this);        
+        // monster.pi = 0;
+        // monster.health = monster.maxHealth;
+
+        this.time.events.add(this.currentWaveData.monsterInterval, this.releaseMonster, this);
+        
+        this.currentWaveMonsterCount++;
 
     },
 
@@ -280,12 +310,18 @@ CravenDefense.Game.prototype = {
         
         this.lives--;
         
-        if(this.lives) {
+        if(this.lives <= 0) {
             this.livesText.text = "Lives: " + this.lives;
         }
         else {
-            alert("You lost, game over!");
-            location.reload();
+            this.gameOver();
+        }
+        
+        // check if any monsters left
+        if(this.monsters.countLiving() === 0 && this.currentWave <= this.currentStageWavesTotal) {
+            
+            this.releaseWave(this.currentWaveData.waveInterval, this.releaseMonster);
+            
         }
     },
     
@@ -308,40 +344,16 @@ CravenDefense.Game.prototype = {
 
     },
     
-    setupExplosion : function (monster) {
-        
-        monster.anchor.x = 0.5;
-        monster.anchor.y = 0.5;
-        monster.animations.add("kaboom");        
-    
-    },
-    
     collisionHandler : function  (bullet, monster) {
-        var bulletType = bullet.parent.name,
-            text = this.killTexts.getFirstDead(false);
+        var text = this.killTexts.getFirstDead(false);
         
         bullet.kill();
         
-        monster.damage(10);
+        // Take Damage
+        monster.damage(bullet.weapon.dmg);
         
-        // Impact
-        // Todo: Add impact to Weapon factory
-        switch(bulletType) {
-            case "ScatterShot":
-            
-            break;
-            case "Beam":
-            
-            var explosion = this.explosions.getFirstExists(false);
-                explosion.reset(monster.body.x, monster.body.y);
-                explosion.play("kaboom", 30, false, true);   
-                         
-            break;            
-            default:
-            case "SingleBullet":
-            
-            break;                        
-        }
+        // Impact Effect
+        bullet.weapon.impact(monster);
         
         if(!monster.alive) {
             //  Increase the score
@@ -368,13 +380,7 @@ CravenDefense.Game.prototype = {
                               
             }
 
-            if(this.waveCount === this.wavesTotal) {
-                text = this.add.text(this.world.width / 2, this.world.height / 2, "Final Wave", this.textStyle2);
-                text.anchor.set(0.5);
-                this.add.tween(text).to( { alpha: 0 }, 2000, "Linear", true);
-            }
-
-            this.releaseWave(this.currentWave.waveInterval, this.releaseMonster);
+            this.releaseWave(this.currentWaveData.waveInterval, this.releaseMonster);
             
             return;
         }  
@@ -400,16 +406,26 @@ CravenDefense.Game.prototype = {
     
     gameOver: function () {
 
-        if (this.monsters.countLiving() === 0 && this.waveCount === this.waveDist.length) {
-            this.score += 1000;
-            this.scoreText.text = "Score: " + this.score;
-
-            this.money += 200;
-            this.moneyText.text = "Money: " + this.money;
+        if (this.monsters.countLiving() === 0 && this.currentWave > this.currentStageWavesTotal) {
             
-            alert("You won the game, congratulations!");
-            this.state.start("CravenDefense.Preloader");
+            // Add slight delay
+            this.time.events.add(Phaser.Timer.SECOND * 2, this.alertText, this);
+            
         }
+
+    },
+    
+    alertText: function () {
+        
+        this.score += 1000;
+        this.scoreText.text = "Score: " + this.score;
+
+        this.money += 200;
+        this.moneyText.text = "Money: " + this.money;
+        
+        alert("Congratulations you won!");
+        
+        this.state.start("CravenDefense.Preloader");
 
     },
 
@@ -447,6 +463,7 @@ CravenDefense.Game.prototype = {
     },
 
     moveMonster: function (monster) {
+
         monster.x = this.path[monster.pi].x;
         monster.y = this.path[monster.pi].y;
         monster.rotation = this.path[monster.pi].angle;
@@ -460,7 +477,7 @@ CravenDefense.Game.prototype = {
 
     },
     
-    getObjectByKeyValue(obj, key, value) {
+    getObjectByKeyValue: function (obj, key, value) {
         
         for (var i in obj) {
             if (obj.hasOwnProperty(i) && typeof(i) !== 'function') {

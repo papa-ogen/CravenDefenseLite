@@ -1,4 +1,4 @@
-var Bullet = function (game, key) {
+var Bullet = function (game, key, weapon) {
     
     Phaser.Sprite.call(this, game, 0, 0, key);
     this.texture.baseTexture.scaleMode = PIXI.scaleModes.NEAREST;
@@ -8,6 +8,7 @@ var Bullet = function (game, key) {
     this.exists = false;
     this.tracking = true;
     this.scaleSpeed = 0;
+    this.weapon = weapon;
     
 };
 
@@ -24,6 +25,7 @@ Bullet.prototype.fire = function (x, y, angle, speed, target) {
     this.game.physics.arcade.moveToObject(this, target, speed);
     
 };
+
 Bullet.prototype.update = function () {
     
     if (this.tracking)
@@ -38,9 +40,29 @@ Bullet.prototype.update = function () {
     }
     
 };
+
+var Explosion = function (game) {
+    
+    Phaser.Sprite.call(this, game, 0, 0, "kaboom");
+    this.texture.baseTexture.scaleMode = PIXI.scaleModes.NEAREST;
+    this.anchor.set(0.5);
+    this.exists = false;
+    
+};
+
+Explosion.prototype = Object.create(Phaser.Sprite.prototype);
+
+Explosion.prototype.constructor = Explosion;
+
+Explosion.prototype.explode = function (target) {
+    
+        this.reset(target.body.x, target.body.y);
+        this.play("kaboom", 30, false, true);   
+    
+};
     
 var Weapon = {};
-    
+
 
 /******* Single Bullet *********/
 Weapon.SingleBullet = function (game) {
@@ -52,11 +74,20 @@ Weapon.SingleBullet = function (game) {
     this.fireRate = 1000;
     this.range = 200;
     this.dmg = 5;
+    this.explosions = game.add.group();
+    this.add(this.explosions);
     
     for (var i = 0; i < 64; i++)
     {
-        this.add(new Bullet(game, 'bullet5'), true);
+        this.add(new Bullet(game, 'bullet5', this), true);
     }
+    
+    for (var i = 0; i < 30; i++)
+    {
+        this.explosions.add(new Explosion(game), true);
+    }
+
+    this.explosions.forEach(this.setupExplosion, this);
     
     return this;
     
@@ -75,6 +106,18 @@ Weapon.SingleBullet.prototype.fire = function (source, target) {
     this.nextFire = this.game.time.time + this.fireRate;
     
 };
+Weapon.SingleBullet.prototype.impact = function (target) {
+    
+    this.explosions.getFirstExists(false).explode(target);
+    
+};
+Weapon.SingleBullet.prototype.setupExplosion = function (target) {
+    
+        target.anchor.x = 0.5;
+        target.anchor.y = 0.5;
+        target.animations.add("kaboom");        
+        
+}; 
 
 
 /******* Scatter Shot *********/
@@ -90,7 +133,7 @@ Weapon.ScatterShot = function (game) {
     
     for (var i = 0; i < 100; i++)
     {
-        this.add(new Bullet(game, 'bullet5'), true);
+        this.add(new Bullet(game, 'bullet2', this), true);
     }
     
     return this;
@@ -109,6 +152,11 @@ Weapon.ScatterShot.prototype.fire = function (source, target) {
     this.nextFire = this.game.time.time + this.fireRate;
     
 };
+Weapon.ScatterShot.prototype.impact = function (target) {
+    
+    // Todo: Implement
+        
+};
 
 
 /******* Beam *********/
@@ -123,7 +171,7 @@ Weapon.Beam = function (game) {
     
     for (var i = 0; i < 64; i++)
     {
-        this.add(new Bullet(game, 'bullet11'), true);
+        this.add(new Bullet(game, 'bullet11', this), true);
     }
     
     return this;
@@ -136,10 +184,15 @@ Weapon.Beam.prototype.fire = function (source, target) {
     
     if (this.game.time.time < this.nextFire) { return; }
     
-    var x = source.x + 40;
-    var y = source.y + 10;
+    var x = source.x + 5;
+    var y = source.y + 5;
     
     this.getFirstExists(false).fire(x, y, 0, this.bulletSpeed, target);
     this.nextFire = this.game.time.time + this.fireRate;
     
+};
+Weapon.Beam.prototype.impact = function (target) {
+    
+    // Todo: Implement
+        
 };

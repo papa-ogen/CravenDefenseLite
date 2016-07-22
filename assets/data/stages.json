@@ -1,0 +1,26 @@
+[{
+	"name": "Stage 1 - The Beginning",
+	"waves": [{
+		"type": "monster1",
+		"amount": 5,
+		"monsterInterval": 2000,
+		"waveInterval": 5000
+	}, {
+		"type": "monster2",
+		"amount": 5,
+		"monsterInterval": 2000,
+		"waveInterval": 5000
+	},
+	{
+		"type": "monster1",
+		"amount": 10,
+		"monsterInterval": 2000,
+		"waveInterval": 5000
+	}, {
+		"type": "monster2",
+		"amount": 10,
+		"monsterInterval": 2000,
+		"waveInterval": 5000
+	}	],
+	"map": []
+}]
