@@ -1,5 +1,11 @@
 CravenDefense.Game = function () {
+    
     this.startTimer = Phaser.Timer.SECOND * 1;
+    
+    this.path = [];
+    this.pathfinding = null;
+    this.map = null;
+    this.layer = null;
 
     this.score = 0;
     this.scoreText = null;
@@ -34,22 +40,16 @@ CravenDefense.Game = function () {
     this.bullets = null;
     this.scatterShots = null;
 
-    // Map
-    this.bmd = null;
-    this.points = {
-        "x": [ 0, 32, 128, 256, 384, 512, 608, 800, 850 ],
-        "y": [ 200, 240, 240, 240, 240, 240, 240, 240, 240 ]
-    };
-    this.path = [];
-    
     this.pauseKey = null;
     this.debugKey = null;
     this.showDebug = false;
+
 };
 
 CravenDefense.Game.prototype = {
     
     init: function (data) {
+        
         // Player Data
         this.player1 = data.players[0];
         this.score = this.player1.score;
@@ -72,28 +72,32 @@ CravenDefense.Game.prototype = {
         this.currentWaveData = this.currentStageData.waves[this.currentWave-1];
         this.currentWaveMonsterCount = 1;
         this.waveCount = 1;
+        
     },
     
     preload: function () {
-        this.load.path = "assets/";
+        
+        // this.load.path = "assets/";
+        
     },  
       
     create: function () {       
-        this.add.image(0, 0, "background");
-          
+        
         /******* Map *********/
-        this.bmd = this.add.bitmapData(this.game.width, this.game.height);
-        this.bmd.addToWorld();
+        this.map = this.add.tilemap("stage1");
+        this.map.addTilesetImage('grass-tiles-2-small', 'tiles');
+        console.log(this.map);
+        this.layer = this.map.createLayer('Background');
         
-        this.plot();
+        this.path = this.map.createLayer('Path');
+
+        // var tile_dimensions = new Phaser.Point(this.map.tileWidth, this.map.tileHeight);
+        // this.pathfinding = this.plugins.add(CravenDefense.Path, this.path.data, [-1], tile_dimensions);     
         
-        // Maps    
-        // this.maps = new CravenDefense.Maps(this);
-        // this.maps.init();
-        // this.path = this.maps.path;       
            
-        /******* HUD *********/
         
+        /******* HUD *********/
+        // https://gamedevacademy.org/how-to-create-a-game-hud-plugin-in-phaser/
         this.livesText = this.add.text(5, 5, "Lives: "+ this.lives, this.textStyle);
         this.moneyText = this.add.text(5, 25, "Money: "+ this.money, this.textStyle);
         
@@ -117,7 +121,7 @@ CravenDefense.Game.prototype = {
             storeTurret.x = this.world.width - 50;
             storeTurret.y = y;
 
-            storeTurret.input.enableDrag();
+            // storeTurret.input.enableDrag();
             storeTurret.events.onDragStart.add(this.onDragStart, this);
             storeTurret.events.onDragStop.add(this.onDragStop, this);   
 
@@ -125,38 +129,11 @@ CravenDefense.Game.prototype = {
         }
 
         /******* Monsters *********/
-        this.store.monsters = new Store.Monsters(this.game, this.monsterTypes);
+        // this.store.monsters = new Store.Monsters(this.game, this.monsterTypes);
         
-        this.monsters = this.add.group();
-        this.monsters.enableBody = true;
-        this.monsters.physicsBodyType = Phaser.Physics.ARCADE;
+        this.monsters = this.add.physicsGroup();
         this.monsters.createMultiple(10, "monster1", 0, false);
         this.monsters.setAll('maxHealth', 20);
-        this.monsters.createMultiple(10, "monster2", 0, false);
-        this.monsters.createMultiple(10, "monster3", 0, false);
-        this.monsters.createMultiple(10, "monster4", 0, false);
-        this.monsters.setAll('anchor.x', 0.5);
-        this.monsters.setAll('anchor.y', 0.5);        
-        this.monsters.setAll('outOfBoundsKill', true);
-        this.monsters.setAll('checkWorldBounds', true);      
-        this.monsters.setAll("pi", 0);     
-        
-        // this.monsters.physicsBodyType = Phaser.Physics.ARCADE;
-        
-        // for(var w = 0; w < this.store.monsters.length; w++) {
-            
-        //     for(var m = 0; m < 10; m++) {
-        //         var m = this.store.monsters.children[w];
-        //         // var m = new Monster(this, mType);
-        //         m.outOfBoundsKill = true;
-        //         m.events.onOutOfBounds.add(this.monsterLeaveScreen, this);
-        //         m.alive = false;
-        //         m.visible = false;
-                
-        //         this.monsters.add(m, true);
-                
-        //     }
-        // }    
         
         this.time.events.add(this.startTimer, this.releaseMonster, this);
 
@@ -256,6 +233,7 @@ CravenDefense.Game.prototype = {
         if (this.currentStageWavesTotal < this.currentWave) return;
 
         if(this.currentWaveMonsterCount > this.currentWaveData.amount) {
+            
             this.currentWave++;
             
             if(this.currentWave <= this.currentStageWavesTotal) {
@@ -271,27 +249,27 @@ CravenDefense.Game.prototype = {
 
         this.waveText.text = "Wave: " + this.currentWave + "/" + this.currentStageWavesTotal;
         
-        if(this.currentWave === this.currentStageWavesTotal && this.currentWaveMonsterCount === 1) {
+        if (this.currentWave === this.currentStageWavesTotal && this.currentWaveMonsterCount === 1) {
+            
             var text = this.add.text(this.world.width / 2, this.world.height / 2, "Final Wave", this.textStyle2);
             text.anchor.set(0.5);
             this.add.tween(text).to( { alpha: 0 }, 2000, "Linear", true);
+            
         }
         
-        var monster = this.monsters.getFirstDead(this.currentWaveData.type);
+        var monster = this.monsters.getFirstDead(true, 0, 0, this.currentWaveData.type);
+        // var monster = this.monsters.getFirstDead(true, 0, 0, 'monster' + this.rnd.between(1, 4));
         
         if (monster) {
-            monster.reset();
-            monster.pi = 0;
+            
+            // monster.reset();
+            monster.body.velocity.x = 100;
             monster.health = monster.maxHealth;
+            monster.x = 0;
+            monster.y = 284;
             monster.events.onOutOfBounds.add(this.monsterLeaveScreen, this);   
+            
         }
-        
-        // var monster = this.monsters.getFirstDead(true, 0, this.world.height/3, this.currentWaveData.type);
-        // monster.checkWorldBounds = true;
-        // monster.outOfBoundsKill = true;
-        // monster.events.onOutOfBounds.add(this.monsterLeaveScreen, this);        
-        // monster.pi = 0;
-        // monster.health = monster.maxHealth;
 
         this.time.events.add(this.currentWaveData.monsterInterval, this.releaseMonster, this);
         
@@ -306,6 +284,7 @@ CravenDefense.Game.prototype = {
     },
     
     monsterLeaveScreen: function (monster) {
+        
         monster.kill();
         
         this.lives--;
@@ -323,6 +302,7 @@ CravenDefense.Game.prototype = {
             this.releaseWave(this.currentWaveData.waveInterval, this.releaseMonster);
             
         }
+        
     },
     
     findTarget: function (turret) {
@@ -385,7 +365,7 @@ CravenDefense.Game.prototype = {
             return;
         }  
         
-        if(!text) {
+        if (!text) {
             
             text = this.add.text(monster.x, monster.y, monster.health + "/" + monster.maxHealth, this.textStyle2, this.killTexts);
             text.anchor.set(0.5);
@@ -429,51 +409,40 @@ CravenDefense.Game.prototype = {
 
     },
 
-    plot: function () {
-
-        this.bmd.clear();
-
-        var x = 1 / game.width,
-            ix = 0;
-
-        for (var i = 0; i <= 1; i += x)
-        {
-            var px = this.math.catmullRomInterpolation(this.points.x, i);
-            var py = this.math.catmullRomInterpolation(this.points.y, i);
-
-            var node = { x: px, y: py, angle: 0 };
-
-            if (ix > 0)
-            {
-                node.angle = this.math.angleBetweenPoints(this.path[ix - 1], node);
-            }
-
-            this.path.push(node);
-            
-            ix++;
-            
-            this.bmd.rect(px, py, 1, 1, "rgba(255, 255, 255, 1)");
-        }
-
-        for (var p = 0; p < this.points.x.length; p++)
-        {
-            this.bmd.rect(this.points.x[p]-3, this.points.y[p]-3, 6, 6, "rgba(255, 0, 0, 1)");
-        }
-
-    },
-
     moveMonster: function (monster) {
 
-        monster.x = this.path[monster.pi].x;
-        monster.y = this.path[monster.pi].y;
-        monster.rotation = this.path[monster.pi].angle;
-        
-        monster.pi++;
-
-        if (monster.pi >= this.path.length)
-        {
-            monster.pi = 0;
+    var next_position, velocity;
+    
+    this.game_state.game.physics.arcade.collide(this, this.game_state.layers.collision);
+    
+    if (this.path.length > 0) {
+        next_position = this.path[this.path_step];
+ 
+        if (!this.reached_target_position(next_position)) {
+            
+            velocity = new Phaser.Point(next_position.x - monster.position.x,
+                                   next_position.y - monster.position.y);
+            velocity.normalize();
+            monster.body.velocity.x = velocity.x * 100;
+            monster.body.velocity.y = velocity.y * 100;
+            
+        } else {
+            this.position.x = next_position.x;
+            this.position.y = next_position.y;
+            if (this.path_step < this.path.length - 1) {
+                
+                this.path_step += 1;
+                
+            } else {
+                
+                this.path = [];
+                this.path_step = -1;
+                monster.body.velocity.x = 0;
+                monster.body.velocity.y = 0;
+                
+            }
         }
+    }
 
     },
     

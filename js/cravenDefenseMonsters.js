@@ -1,3 +1,4 @@
+// https://gamedevacademy.org/platformer-tutorial-with-phaser-and-tiled/
 var Monster = function (game, monster) {
     
     Phaser.Sprite.call(this, game, 0, 0, monster.type);

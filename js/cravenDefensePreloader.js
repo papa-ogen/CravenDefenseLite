@@ -1,4 +1,4 @@
-var CravenDefense = {};
+var CravenDefense = CravenDefense || {};
 
 CravenDefense.Preloader = function() {};
 
@@ -7,6 +7,8 @@ CravenDefense.Preloader.prototype = {
         
         this.input.maxPointers = 1;
         this.scale.pageAlignHorizontally = true;
+		this.scale.pageAlignVertically = true;
+		this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
         
     },
 
@@ -31,7 +33,10 @@ CravenDefense.Preloader.prototype = {
         this.load.spritesheet("button", "button.png", 120, 40);
         this.load.spritesheet("kaboom", "explode.png", 128, 128);
         this.load.spritesheet("laser", "rgblaser.png", 4, 4);
-
+        
+        this.load.path = "assets/maps/";
+        this.load.tilemap('stage1', 'test.json', null, Phaser.Tilemap.TILED_JSON);
+        this.load.image('tiles', 'grass-tiles-2-small.png');
     },
 
     create: function () {
