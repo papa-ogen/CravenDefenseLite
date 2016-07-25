@@ -15,7 +15,7 @@
 var game = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update });
 
 function preload() {
-        game.load.tilemap('stage1', 'assets/maps//test.json', null, Phaser.Tilemap.TILED_JSON);
+        game.load.tilemap('stage1', 'assets/maps/test.json', null, Phaser.Tilemap.TILED_JSON);
         game.load.image('tiles', 'assets/maps/grass-tiles-2-small.png', null, Phaser.Tilemap.TILED_JSON);
         game.load.image("monster1", "assets/images/monster1.png");
 }
@@ -47,7 +47,7 @@ function create() {
     monster = game.add.sprite(0, 298, "monster1");
     monster.anchor.set(0.5);
     
-    console.log(easystar.calculate());
+    console.log(easystar);
 }
 
 function update () {
