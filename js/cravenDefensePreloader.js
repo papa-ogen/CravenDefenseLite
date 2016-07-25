@@ -38,6 +38,7 @@ CravenDefense.Preloader.prototype = {
         this.load.tilemap('stage1', 'test.json', null, Phaser.Tilemap.TILED_JSON);
         this.load.image('tiles', 'grass-tiles-2-small.png');
         this.load.image('trees', 'plant repack.png');
+        this.load.image('shrooms', 'littleshrooms.png');
     },
 
     create: function () {

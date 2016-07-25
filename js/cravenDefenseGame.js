@@ -87,6 +87,7 @@ CravenDefense.Game.prototype = {
         this.map = this.add.tilemap("stage1");
         this.map.addTilesetImage('grass-tiles-2-small', 'tiles');
         this.map.addTilesetImage("plant repack", "trees");
+        this.map.addTilesetImage("littleshrooms", "shrooms");
 
         this.layer = this.map.createLayer('Background');
         this.layer2 = this.map.createLayer("Trees");
