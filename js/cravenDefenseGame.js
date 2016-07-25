@@ -18,7 +18,7 @@ CravenDefense.Game = function () {
     
     this.killTexts = null;
     
-    this.textStyle = { font: "18px Arial", fill: "#0095DD" };
+    this.textStyle = { font: "18px Arial", fill: "#ffffff" };
     this.textStyle2 = { font: "18px Arial", fill: "#000000" };
     
     this.currentStage = null;
@@ -86,9 +86,11 @@ CravenDefense.Game.prototype = {
         /******* Map *********/
         this.map = this.add.tilemap("stage1");
         this.map.addTilesetImage('grass-tiles-2-small', 'tiles');
-        console.log(this.map);
+        this.map.addTilesetImage("plant repack", "trees");
+
         this.layer = this.map.createLayer('Background');
-        
+        this.layer2 = this.map.createLayer("Trees");
+        this.layer3 = this.map.createLayer("Trees2");
         this.path = this.map.createLayer('Path');
 
         // var tile_dimensions = new Phaser.Point(this.map.tileWidth, this.map.tileHeight);
