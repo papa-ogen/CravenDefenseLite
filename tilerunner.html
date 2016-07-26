@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tile Runner</title>
+</head>
+<body>
+    
+<script src='js/vendor/phaser.min.js'></script>    
+<script>
+    
+var TileRunner = {
+    level: 0,
+    score: 0    
+};
+
+TileRunner.Preloader = function () {};
+
+TileRunner.Preloader.prototype = {
+    
+    init: function () {
+
+        this.scale.pageAlignHorizontally = true;
+
+    },
+
+    preload: function () {
+
+        this.load.path = 'assets/images/';
+
+        this.load.images([ 'monster1', 'turret1' ]);
+        
+        this.load.path = 'assets/maps/';
+        
+        this.load.tilemap('stage1', 'tree.json', null, Phaser.Tilemap.TILED_JSON);
+        this.load.image('tiles', 'grass-tiles-2-small.png');
+        this.load.image('trees', 'tree2-final.png');
+
+    },
+
+    create: function () {
+
+        this.state.start('TileRunner.Game');
+
+    }
+
+};
+
+TileRunner.Game = function () {
+
+    this.player = null;
+    
+    this.map = null;
+    this.layer = null;
+    this.foreground = null;
+    this.topLayer = null;
+    this.pathLayer = null;
+    
+    this.pauseKey = null;
+    this.debugKey = null;
+    this.showDebug = false;
+
+};
+
+TileRunner.Game.prototype = {
+    
+    init: function () {
+
+
+        this.showDebug = false;
+
+    },
+
+    create: function () {
+        
+        this.map = this.add.tilemap('stage1');
+        this.map.addTilesetImage('grass-tiles-2-small', 'tiles');
+        this.map.addTilesetImage("tree2-final", "trees");
+        
+        this.layer = this.map.createLayer('Background');
+        this.layer.resizeWorld();
+        
+        this.physics.startSystem(Phaser.Physics.ARCADE);
+        
+        this.foreground = this.map.createLayer("Foreground");
+        this.topLayer = this.map.createLayer("Top");     
+        
+        this.pathLayer = this.map.createLayer("Path");
+        
+        this.path = this.add.group();
+
+        this.map.createFromTiles(71, 6, 'tiles', this.pathLayer, this.path);
+
+        // this.path.visible = false;
+        
+        //  Press P to pause and resume the game
+        this.pauseKey = this.input.keyboard.addKey(Phaser.Keyboard.P);
+        this.pauseKey.onDown.add(this.togglePause, this);
+
+        //  Press D to toggle the debug display
+        this.debugKey = this.input.keyboard.addKey(Phaser.Keyboard.D);
+        this.debugKey.onDown.add(this.toggleDebug, this);
+
+    },
+    
+    update: function () {},
+    
+    togglePause: function () {
+
+        this.game.paused = (this.game.paused) ? false : true;
+
+    },
+
+    toggleDebug: function () {
+
+    }
+};
+
+var game = new Phaser.Game(800, 600, Phaser.AUTO, 'game');
+
+game.state.add('TileRunner.Preloader', TileRunner.Preloader);
+game.state.add('TileRunner.Game', TileRunner.Game);
+
+game.state.start('TileRunner.Preloader');
+    
+</script>    
+</body>
+</html>

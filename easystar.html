@@ -6,138 +6,117 @@
 </head>
 <body>
     
-    
-    
     <script src='js/vendor/easystar-0.3.0.min.js'></script>
     <script src='js/vendor/phaser.min.js'></script>    
+    <script src='js/vendor/phaser_pathfinding-0.2.0.min.js'></script>
     <script>
             
-var game = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update });
+var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'gameContainer', { preload: preload, create: create, update: update, render: render });
 
 function preload() {
-        game.load.tilemap('stage1', 'assets/maps/test.json', null, Phaser.Tilemap.TILED_JSON);
-        game.load.image('tiles', 'assets/maps/grass-tiles-2-small.png', null, Phaser.Tilemap.TILED_JSON);
-        game.load.image("monster1", "assets/images/monster1.png");
+
+    game.load.tilemap('stage1', 'assets/maps/tree.json', null, Phaser.Tilemap.TILED_JSON);
+    game.load.image('tiles', 'assets/maps/grass-tiles-2-small.png');
+    game.load.image('trees', 'assets/maps/tree2-final.png');
+    game.load.image("monster1", "assets/images/monster1.png");
+
 }
 
 var map;
+var tileset;
 var layer;
+var foreground;
+var topLayer;
+var pathfinder;
 var path;
-var monster;
-var easystar;
+
+var cursors;
+var sprite;
+var marker;
+var blocked = false;
 
 function create() {
-    
-    easystar = new EasyStar.js();
-    
-    map = game.add.tilemap("stage1");
-    
+
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+
+    map = game.add.tilemap('stage1');
     map.addTilesetImage('grass-tiles-2-small', 'tiles');
+    map.addTilesetImage("tree2-final", "trees");
     
     layer = map.createLayer('Background');
+    layer.resizeWorld();
     
-    easystar.setGrid(map);
-
-    easystar.setIterationsPerCalculation(1000); 
-
-    easystar.setAcceptableTiles([0,2,3,4,5,6,7]);
-    easystar.enableCornerCutting();
-    easystar.enableDiagonals();
-
-    monster = game.add.sprite(0, 298, "monster1");
-    monster.anchor.set(0.5);
+    foreground = map.createLayer("Foreground");
+    topLayer = map.createLayer("Top");
     
-    console.log(easystar);
+    path = map.createLayer("Path");
+
+    var walkables = [30];
+    pathfinder = game.plugins.add(Phaser.Plugin.PathFinderPlugin);
+    pathfinder.setGrid(map.layers[0].data, walkables);
+
+    sprite = game.add.sprite(100, 100, 'monster1');
+    sprite.anchor.setTo(0.5, 0.5);
+
+    game.physics.enable(sprite);
+
+    game.camera.follow(sprite);
+
+    cursors = game.input.keyboard.createCursorKeys();
+    marker = game.add.graphics();
+    marker.lineStyle(2, 0x000000, 1);
+    marker.drawRect(0, 0, 32, 32);
 }
 
-function update () {
-    
-    updateMap(monster);
-    
-}              
+function findPathTo(tilex, tiley) {
 
-function updateMap(monster) {
-    easystar.findPath(monster.x, monster.y, 200, 336, function( path ) {
-        var currentNextPointX = 0,
-            currentNextPointY = 0,
-            speed = 50;
-        
-        if (path === null) {
-            return;
-        } 
-        
-        if (path) {
-            currentNextPointX = path[1].x;
-            currentNextPointY = path[1].y;
+    pathfinder.setCallbackFunction(function(path) {
+        path = path || [];
+        for(var i = 0, ilen = path.length; i < ilen; i++) {
+            map.putTile(46, path[i].x, path[i].y);
         }
-                
-        if (currentNextPointX < monster.x && currentNextPointY < monster.y) {
-            // left up
-                                
-	        	monster.body.velocity.x = -speed;
-	        	monster.body.velocity.y = 0;
-            }
-            else if (currentNextPointX == monster.x && currentNextPointY < monster.y)
-            {
-            // up
-                                
-	        	monster.body.velocity.y = -speed;
-	        	monster.body.velocity.x = -speed;
-                                
-            }
-            else if (currentNextPointX > monster.x && currentNextPointY < monster.y)
-            {
-            // right up
-                                
-	        	monster.body.velocity.y = -speed;
-	        	monster.body.velocity.x = 0;
-                                
-        }
-        else if (currentNextPointX < monster.x && currentNextPointY == monster.y)
-        {
-            // left
-                                
-	        	monster.body.velocity.x = -speed;
-	        	monster.body.velocity.y = speed;
-                                
-        }
-        else if (currentNextPointX > monster.x && currentNextPointY == monster.y)
-        {
-            // right
-                                
-	        	monster.body.velocity.x = speed;
-	        	monster.body.velocity.y = -speed;
-                            
-        }
-        else if (currentNextPointX > monster.x && currentNextPointY > monster.y)
-        {
-            // right down
-                                
-	        	monster.body.velocity.x = speed;
-	        	monster.body.velocity.y = 0;
-                                
-        }
-        else if (currentNextPointX == monster.x && currentNextPointY > monster.y)
-        {
-            // down
-                                
-	        	monster.body.velocity.y = speed;
-	        	monster.body.velocity.x = speed;
-                                
-        }
-        else if (currentNextPointX < monster.x && currentNextPointY > monster.y)
-        {
-            // left down
-                                
-	        	monster.body.velocity.y = speed;
-	        	monster.body.velocity.x = 0;
-                                
-        }
-                            
-        easystar.calculate();
+        blocked = false;
     });
+
+    pathfinder.preparePathCalculation([0,0], [tilex,tiley]);
+    pathfinder.calculatePath();
 }
 
+function update() {
+    game.physics.arcade.collide(sprite, layer);
+
+    sprite.body.velocity.x = 0;
+    sprite.body.velocity.y = 0;
+    sprite.body.angularVelocity = 0;
+
+    if (cursors.left.isDown)
+    {
+        sprite.body.angularVelocity = -200;
+    }
+    else if (cursors.right.isDown)
+    {
+        sprite.body.angularVelocity = 200;
+    }
+
+    if (cursors.up.isDown)
+    {
+        sprite.body.velocity.copyFrom(game.physics.arcade.velocityFromAngle(sprite.angle, 300));
+    }
+
+    marker.x = layer.getTileX(game.input.activePointer.worldX) * 32;
+    marker.y = layer.getTileY(game.input.activePointer.worldY) * 32;
+
+    if (game.input.mousePointer.isDown)
+    {
+        blocked = true;
+        findPathTo(layer.getTileX(marker.x), layer.getTileY(marker.y));
+    }
+
+}
+
+function render() {
+
+}
     </script>
     
 </body>

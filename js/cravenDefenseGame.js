@@ -89,10 +89,9 @@ CravenDefense.Game.prototype = {
         this.map.addTilesetImage("plant repack", "trees");
         this.map.addTilesetImage("littleshrooms", "shrooms");
 
-        this.layer = this.map.createLayer('Background');
+        this.layer = this.map.createLayer('Ground');
         this.layer2 = this.map.createLayer("Trees");
         this.layer3 = this.map.createLayer("Trees2");
-        this.path = this.map.createLayer('Path');
 
         // var tile_dimensions = new Phaser.Point(this.map.tileWidth, this.map.tileHeight);
         // this.pathfinding = this.plugins.add(CravenDefense.Path, this.path.data, [-1], tile_dimensions);     
@@ -157,7 +156,7 @@ CravenDefense.Game.prototype = {
     
     update: function () {
 
-        this.monsters.forEachAlive(this.moveMonster, this);
+        // this.monsters.forEachAlive(this.moveMonster, this);
 
         this.turrets.forEachAlive(this.findTarget, this);      
         
