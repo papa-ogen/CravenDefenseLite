@@ -93,10 +93,6 @@ CravenDefense.Game.prototype = {
         this.layer2 = this.map.createLayer("Trees");
         this.layer3 = this.map.createLayer("Trees2");
 
-        // var tile_dimensions = new Phaser.Point(this.map.tileWidth, this.map.tileHeight);
-        // this.pathfinding = this.plugins.add(CravenDefense.Path, this.path.data, [-1], tile_dimensions);     
-        
-           
         
         /******* HUD *********/
         // https://gamedevacademy.org/how-to-create-a-game-hud-plugin-in-phaser/
@@ -413,39 +409,8 @@ CravenDefense.Game.prototype = {
 
     moveMonster: function (monster) {
 
-    var next_position, velocity;
+        monster.body.velocity.x += 50;
     
-    this.game_state.game.physics.arcade.collide(this, this.game_state.layers.collision);
-    
-    if (this.path.length > 0) {
-        next_position = this.path[this.path_step];
- 
-        if (!this.reached_target_position(next_position)) {
-            
-            velocity = new Phaser.Point(next_position.x - monster.position.x,
-                                   next_position.y - monster.position.y);
-            velocity.normalize();
-            monster.body.velocity.x = velocity.x * 100;
-            monster.body.velocity.y = velocity.y * 100;
-            
-        } else {
-            this.position.x = next_position.x;
-            this.position.y = next_position.y;
-            if (this.path_step < this.path.length - 1) {
-                
-                this.path_step += 1;
-                
-            } else {
-                
-                this.path = [];
-                this.path_step = -1;
-                monster.body.velocity.x = 0;
-                monster.body.velocity.y = 0;
-                
-            }
-        }
-    }
-
     },
     
     getObjectByKeyValue: function (obj, key, value) {
