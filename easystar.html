@@ -17,16 +17,21 @@ function preload() {
     game.load.tilemap('map', 'assets/maps/easystar.json', null, Phaser.Tilemap.TILED_JSON);
     game.load.image('tiles', 'assets/maps/floor_tileset.png');
     game.load.image("monster1", "assets/images/monster1.png");
+    game.load.image("pathPoint", "assets/images/pathPoint.png");
+    game.load.image("pathFinish", "assets/images/pathFinish.png");
 
 }
 
 var map, layer, foreground, toplayer, sprite,
-    easystar, endX, endY, currentTileX, currentTileY,
-    grid = [], acceptableTile, marker = {};
+    easystar, endX, endY, currentTile = {},
+    grid = [], acceptableTile, marker = {}, sprites,
+    cursors;
 
 function create() {
 
     game.physics.startSystem(Phaser.Physics.ARCADE);
+    
+    sprites = game.add.group();
 
     map = game.add.tilemap('map');
     map.addTilesetImage('floor_tileset', 'tiles');
@@ -43,21 +48,28 @@ function create() {
     easystar.setAcceptableTiles([acceptableTile]);
     easystar.enableCornerCutting();
     easystar.enableDiagonals();
-
+// http://mightyfingers.com/tutorials/advanced/pathfinding/
 //    easystar.setIterationsPerCalculation(1000);
 
-    sprite = game.add.sprite(300, 50, 'monster1');
+    sprite = game.add.sprite(300, 80, 'monster1');
     sprite.anchor.setTo(0.5, 0.5);
 
     game.physics.enable(sprite);
     
     sprite.body.velocity.x = -10;
     
-    currentTileX =  layer.getTileX(sprite.x);
-    currentTileY = layer.getTileY(sprite.y);
-    console.log(currentTileX, currentTileY);
+    currentTile = getCurrentTile(layer, sprite.x, sprite.y);
+    
+    console.log(currentTile.x, currentTile.y);
 
     game.camera.follow(sprite);
+    
+    cursors = game.input.keyboard.createCursorKeys();
+
+    this.cursors.left.onDown.add(this.moveLeft, this);
+    this.cursors.right.onDown.add(this.moveRight, this);
+    this.cursors.up.onDown.add(this.moveUp, this);
+    this.cursors.down.onDown.add(this.moveDown, this);    
     
 }
 
@@ -92,10 +104,9 @@ function update() {
     
     game.physics.arcade.collide(sprite, layer);
     
-    currentTileX =  layer.getTileX(sprite.x);
-    currentTileY = layer.getTileY(sprite.y);
+    currentTile = getCurrentTile(layer, sprite.x, sprite.y);
     
-    easystar.findPath(currentTileX, currentTileY, 9, 0, findPath);
+    easystar.findPath(currentTile.x, currentTile.y, 4, 4, findPath);
     
     easystar.calculate();
 
@@ -112,17 +123,65 @@ function findPath (path) {
         
     } else {
         
-        console.log("Path was found. The first Point is " + path[0].x + " " + path[0].y, path);
+        console.log("Path was found. The first Point is " + path[0].x + " " + path[0].y);
         
         var tile = map.getTile(path[0].x, path[0].y, layer); 
         
-        if(game.physics.arcade.distanceToXY(sprite, tile.worldX, tile.worldX) >= 4) {
+        console.log("move to: ", path[0].x, path[0].y, tile.worldX, tile.worldY);
+        // console.log("move to: ", game.math.snapToFloor(sprite.x, 32) / 32, game.math.snapToFloor(sprite.y, 32) / 32);
+        
+        addPath(path);
+        
+        if (game.physics.arcade.distanceToXY(sprite, tile.worldX, tile.worldY) >= 4) {
 
-            game.physics.arcade.moveToXY(sprite, tile.worldX, tile.worldX, 50);
+           game.physics.arcade.moveToXY(sprite, tile.worldX, tile.worldY, 50);
             
+        } else {
+            console.log("Sprite: ", sprite.x, sprite.y);
         }
 
     }
+}
+
+function getCurrentTile(layer, x, y) {
+    
+    var tile = {};
+    
+    tile.x = layer.getTileX(x);
+    tile.y = layer.getTileY(y);
+    
+    return tile;
+    
+}
+
+function addPath(path) {
+    
+    var tile, pathSprite;
+    
+    sprites.removeAll(true);
+    
+    sprites = game.add.group();
+    
+    for(var i=0; i < path.length; i++) {
+        
+        tile = map.getTile(path[i].x, path[i].y, layer); 
+        
+        if(i+1 === path.length) {
+        
+            pathSprite = game.add.sprite(tile.worldX + tile.centerX, tile.worldY + tile.centerY, 'pathFinish');
+        
+        } else {
+        
+            pathSprite = game.add.sprite(tile.worldX + tile.centerX, tile.worldY + tile.centerY, 'pathPoint');
+        
+        }
+        
+        pathSprite.anchor.setTo(0.5, 0.5);
+        
+        sprites.add(pathSprite);
+        
+    }
+  
 }
 
 function render() {
